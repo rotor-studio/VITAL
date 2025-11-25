@@ -1,0 +1,855 @@
+{
+  "survey_id": 1,
+  "title": {
+    "es": "Encuesta",
+    "eu": "Inkesta",
+    "en": "Survey"
+  },
+  "languages": [
+    { "code": "es", "label": "Castellano" },
+    { "code": "eu", "label": "Euskara" },
+    { "code": "en", "label": "English" }
+  ],
+  "steps": {
+    "es": [
+      {
+        "id": "datos_demograficos",
+        "type": "form",
+        "label": "Primero, cuéntanos un poco sobre ti",
+        "hint": "Solo utilizaremos esta información para entender mejor los resultados.",
+        "required": true,
+        "fields": [
+          {
+            "id": "codigo_postal",
+            "type": "text",
+            "label": "Código postal",
+            "placeholder": "Ej. 01001",
+            "required": true,
+            "maxLength": 5
+          },
+          {
+            "id": "edad",
+            "type": "number",
+            "label": "Edad",
+            "placeholder": "Tu edad",
+            "required": true,
+            "min": 10,
+            "max": 120
+          },
+          {
+            "id": "genero",
+            "type": "select",
+            "label": "Género",
+            "required": true,
+            "options": [
+              { "value": "woman", "label": "Mujer" },
+              { "value": "man", "label": "Hombre" },
+              { "value": "nonbinary", "label": "No binario" },
+              { "value": "no_answer", "label": "Prefiero no decirlo" }
+            ]
+          },
+          {
+            "id": "nivel_estudios",
+            "type": "select",
+            "label": "Nivel de estudios",
+            "required": true,
+            "options": [
+              { "value": "sin_estudios", "label": "Sin estudios reglados" },
+              { "value": "obligatorios", "label": "Educación obligatoria" },
+              { "value": "bachillerato_fp", "label": "Bachillerato / FP" },
+              { "value": "universitarios", "label": "Universitarios / Posgrado" }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "valoracion_exposicion",
+        "type": "rating",
+        "label": "¿Qué te ha parecido la exposición?",
+        "hint": "1 = muy mala, 10 = excelente.",
+        "required": true,
+        "min": 1,
+        "max": 10,
+        "comment_field": {
+          "id": "comentario_exposicion",
+          "type": "textarea",
+          "label": "Si quieres, déjanos un comentario",
+          "placeholder": "Comparte lo que más te gustó o lo que mejorarías...",
+          "required": false,
+          "maxLength": 400,
+          "rows": 4
+        }
+      },
+      {
+        "id": "contenido_interesante",
+        "type": "chips",
+        "label": "¿Cuál ha sido el contenido más interesante?",
+        "required": true,
+        "options": [
+          { "value": "dibujar_territorio", "label": "Dibujar el Territorio" },
+          { "value": "voces_territorio", "label": "Voces del Territorio" },
+          { "value": "camino_futuro", "label": "Camino al Futuro" }
+        ],
+        "comment_field": {
+          "id": "contenido_interesante_comentario",
+          "type": "textarea",
+          "label": "¿Por qué te pareció interesante ese contenido?",
+          "placeholder": "Puedes contarnos detalles o sensaciones...",
+          "required": false,
+          "maxLength": 400,
+          "rows": 3
+        }
+      },
+      {
+        "id": "personaje_importante",
+        "type": "select",
+        "label": "De los personajes que aparecen, ¿cuál consideras que ha sido más importante para Álava?",
+        "required": true,
+        "options": [
+          { "value": "simon_de_anda", "label": "Simón de Anda" },
+          { "value": "manuel_iradier", "label": "Manuel Iradier" },
+          { "value": "mariano_diez_tobar", "label": "Mariano Díez Tobar" },
+          { "value": "maria_sarmiento", "label": "María Sarmiento" },
+          { "value": "ernestina_de_champourcin", "label": "Ernestina de Champourcín" },
+          { "value": "pedro_lopez_de_ayala", "label": "Pedro López de Ayala" },
+          { "value": "juan_perez_de_lazarraga", "label": "Juan Pérez de Lazarraga" },
+          { "value": "micaela_portilla", "label": "Micaela Portilla" },
+          { "value": "ella_fitzgerald", "label": "Ella Fitzgerald" },
+          { "value": "jesus_guridi", "label": "Jesús Guridi" },
+          { "value": "maria_de_maeztu", "label": "María de Maeztu" },
+          { "value": "naipera", "label": "Naipera" }
+        ],
+        "comment_field": {
+          "id": "personaje_atencion_comentario",
+          "type": "textarea",
+          "label": "¿Cuál es el que más te ha llamado la atención?",
+          "placeholder": "Cuéntanos qué te llamó la atención o por qué lo elegiste...",
+          "required": false,
+          "maxLength": 400,
+          "rows": 3
+        }
+      },
+      {
+        "id": "aprendizaje_alava",
+        "type": "textarea",
+        "label": "¿Qué has aprendido en esta exposición que no supieras sobre Álava?",
+        "placeholder": "Describe brevemente qué aprendizajes o datos nuevos te llevas...",
+        "required": false,
+        "maxLength": 400
+      },
+      {
+        "id": "algo_en_falta",
+        "type": "textarea",
+        "label": "¿Has echado algo de menos en la exposición?",
+        "placeholder": "Cuéntanos qué añadirías o qué te habría gustado ver...",
+        "required": false,
+        "maxLength": 400
+      },
+      {
+        "id": "origen_alava",
+        "type": "chips",
+        "label": "¿Eres de Álava?",
+        "hint": "Usamos esta respuesta para adaptar las siguientes preguntas.",
+        "required": true,
+        "options": [
+          { "value": "yes", "label": "Sí" },
+          { "value": "no", "label": "No" }
+        ],
+        "jump_if": {
+          "value": "no",
+          "target": "visitas_expos"
+        }
+      },
+      {
+        "id": "asociaciones_alava",
+        "type": "chips",
+        "section_title": "ALAVA",
+        "label": "¿Con qué palabras asocias el nombre de Álava? ¿Y el de Vitoria-Gasteiz?",
+        "required": true,
+        "multi": true,
+        "options": [
+          { "value": "innovacion", "label": "Innovación" },
+          { "value": "educacion", "label": "Educación" },
+          { "value": "tradicion", "label": "Tradición" },
+          { "value": "integracion", "label": "Integración" },
+          { "value": "modernidad", "label": "Modernidad" },
+          { "value": "bienestar", "label": "Bienestar" },
+          { "value": "calidad_vida", "label": "Calidad de vida" },
+          { "value": "diversidad", "label": "Diversidad" },
+          { "value": "talento", "label": "Talento" },
+          { "value": "sostenibilidad", "label": "Sostenibilidad" },
+          { "value": "creatividad", "label": "Creatividad" },
+          { "value": "vanguardia", "label": "Vanguardia" },
+          { "value": "tecnologia", "label": "Tecnología" }
+        ],
+        "comment_field": {
+          "id": "asociaciones_alava_comentario",
+          "type": "textarea",
+          "label": "Si quieres, cuéntanos por qué elegiste esas palabras",
+          "placeholder": "Añade algún detalle sobre tus asociaciones...",
+          "required": false,
+          "maxLength": 400,
+          "rows": 3
+        }
+      },
+      {
+        "id": "sentirse_alaves",
+        "type": "textarea",
+        "label": "¿Qué es para ti sentirte alavés/alavesa?",
+        "placeholder": "Descríbelo con tus palabras...",
+        "required": false,
+        "maxLength": 400
+      },
+      {
+        "id": "orgullo_alava",
+        "type": "textarea",
+        "label": "¿Qué es lo que más te enorgullece?",
+        "placeholder": "Cuéntanos aquello que te hace sentir orgullo...",
+        "required": false,
+        "maxLength": 400
+      },
+      {
+        "id": "reto_futuro_alava",
+        "type": "textarea",
+        "label": "¿Cuál es para ti el mayor reto de futuro de Álava?",
+        "placeholder": "Describe el desafío que consideras más importante...",
+        "required": false,
+        "maxLength": 400
+      },
+      {
+        "id": "visitas_expos",
+        "type": "chips",
+        "section_title": "INTERESES",
+        "label": "¿Sueles visitar exposiciones? ¿Con cuánta frecuencia?",
+        "required": true,
+        "options": [
+          { "value": "1_2", "label": "1 o 2 veces al año" },
+          { "value": "3_5", "label": "Entre 3 y 5 al año" },
+          { "value": "6_mas", "label": "Más de 6 al año" }
+        ],
+        "comment_field": {
+          "id": "visitas_expos_comentario",
+          "type": "textarea",
+          "label": "Cuéntanos algo más sobre tus visitas",
+          "placeholder": "Por ejemplo, qué tipo de exposiciones prefieres...",
+          "required": false,
+          "maxLength": 400,
+          "rows": 3
+        }
+      },
+      {
+        "id": "canal_conocimiento",
+        "type": "chips",
+        "section_title": "INTERESES",
+        "label": "¿Cómo has tenido noticia de esta exposición?",
+        "required": true,
+        "options": [
+          { "value": "prensa", "label": "Prensa" },
+          { "value": "internet", "label": "Internet" },
+          { "value": "rrss", "label": "RRSS" },
+          { "value": "familia_amigos", "label": "Familia/Amigos" },
+          { "value": "otros", "label": "Otros" }
+        ]
+      },
+      {
+        "id": "temas_futuros",
+        "type": "textarea",
+        "section_title": "INTERESES",
+        "label": "¿Qué otro tipo de temas te gustaría ver en futuras exposiciones del nuevo centro?",
+        "placeholder": "Comparte algunas ideas...",
+        "required": false,
+        "maxLength": 400
+      },
+      {
+        "id": "actividades_centro",
+        "type": "textarea",
+        "section_title": "INTERESES",
+        "label": "¿Qué tipo de actividades te gustaría encontrarte en el nuevo centro?",
+        "placeholder": "Por ejemplo: talleres, charlas, conciertos...",
+        "required": false,
+        "maxLength": 400
+      },
+      {
+        "id": "conoces_vital",
+        "type": "chips",
+        "section_title": "INTERESES",
+        "label": "¿Conoces la labor de la Fundación Vital Fundazioa?",
+        "required": true,
+        "options": [
+          { "value": "yes", "label": "Sí" },
+          { "value": "some", "label": "Algo" },
+          { "value": "no", "label": "No" }
+        ],
+        "comment_field": {
+          "id": "conoces_vital_comentario",
+          "type": "textarea",
+          "label": "¿Quieres añadir algún comentario final?",
+          "placeholder": "Cuéntanos qué sabes o qué te gustaría saber...",
+          "required": false,
+          "maxLength": 400,
+          "rows": 3
+        }
+      }
+    ],
+    "eu": [
+      {
+        "id": "datos_demograficos",
+        "type": "form",
+        "label": "Lehenik eta behin, kontaiguzu pixka bat zuri buruz",
+        "hint": "Informazio hau soilik erabiliko dugu emaitzak hobeto ulertzeko.",
+        "required": true,
+        "fields": [
+          {
+            "id": "codigo_postal",
+            "type": "text",
+            "label": "Posta kodea",
+            "placeholder": "Adib. 01001",
+            "required": true,
+            "maxLength": 5
+          },
+          {
+            "id": "edad",
+            "type": "number",
+            "label": "Adina",
+            "placeholder": "Zure adina",
+            "required": true,
+            "min": 10,
+            "max": 120
+          },
+          {
+            "id": "genero",
+            "type": "select",
+            "label": "Generoa",
+            "required": true,
+            "options": [
+              { "value": "woman", "label": "Emakumea" },
+              { "value": "man", "label": "Gizona" },
+              { "value": "nonbinary", "label": "Ez-binarioa" },
+              { "value": "no_answer", "label": "Ez dut esan nahi" }
+            ]
+          },
+          {
+            "id": "nivel_estudios",
+            "type": "select",
+            "label": "Ikasketa maila",
+            "required": true,
+            "options": [
+              { "value": "sin_estudios", "label": "Ikasketa erregulaturik gabe" },
+              { "value": "obligatorios", "label": "Derrigorrezko hezkuntza" },
+              { "value": "bachillerato_fp", "label": "Batxilergoa / LH" },
+              { "value": "universitarios", "label": "Unibertsitateko / Graduondoko" }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "valoracion_exposicion",
+        "type": "rating",
+        "label": "Nolakoa iruditu zaizu erakusketa?",
+        "hint": "1 = oso txarra, 10 = bikaina.",
+        "required": true,
+        "min": 1,
+        "max": 10,
+        "comment_field": {
+          "id": "comentario_exposicion",
+          "type": "textarea",
+          "label": "Nahi baduzu, utzi iruzkin bat",
+          "placeholder": "Zer gustatu edo hobetu zenezakeena...",
+          "required": false,
+          "maxLength": 400,
+          "rows": 4
+        }
+      },
+      {
+        "id": "contenido_interesante",
+        "type": "chips",
+        "label": "Zein eduki iruditu zaizu interesgarriena?",
+        "required": true,
+        "options": [
+          { "value": "dibujar_territorio", "label": "Lurraldea marrazten" },
+          { "value": "voces_territorio", "label": "Lurraldearen ahotsak" },
+          { "value": "camino_futuro", "label": "Etorkizunerako bidea" }
+        ],
+        "comment_field": {
+          "id": "contenido_interesante_comentario",
+          "type": "textarea",
+          "label": "Zergatik iruditu zaizu interesgarria eduki hori?",
+          "placeholder": "Xehetasunak edo sentipenak partekatu...",
+          "required": false,
+          "maxLength": 400,
+          "rows": 3
+        }
+      },
+      {
+        "id": "personaje_importante",
+        "type": "select",
+        "label": "Agertzen diren pertsonaien artean, zein uste duzu izan dela Arabarentzat garrantzitsuena?",
+        "required": true,
+        "options": [
+          { "value": "simon_de_anda", "label": "Simón de Anda" },
+          { "value": "manuel_iradier", "label": "Manuel Iradier" },
+          { "value": "mariano_diez_tobar", "label": "Mariano Díez Tobar" },
+          { "value": "maria_sarmiento", "label": "María Sarmiento" },
+          { "value": "ernestina_de_champourcin", "label": "Ernestina de Champourcín" },
+          { "value": "pedro_lopez_de_ayala", "label": "Pedro López de Ayala" },
+          { "value": "juan_perez_de_lazarraga", "label": "Juan Pérez de Lazarraga" },
+          { "value": "micaela_portilla", "label": "Micaela Portilla" },
+          { "value": "ella_fitzgerald", "label": "Ella Fitzgerald" },
+          { "value": "jesus_guridi", "label": "Jesús Guridi" },
+          { "value": "maria_de_maeztu", "label": "María de Maeztu" },
+          { "value": "naipera", "label": "Naipera" }
+        ],
+        "comment_field": {
+          "id": "personaje_atencion_comentario",
+          "type": "textarea",
+          "label": "Zein izan da gehien interesatu zaituena?",
+          "placeholder": "Zergatik aukeratu duzun azaldu...",
+          "required": false,
+          "maxLength": 400,
+          "rows": 3
+        }
+      },
+      {
+        "id": "aprendizaje_alava",
+        "type": "textarea",
+        "label": "Zer ikasi duzu erakusketa honetan Arabari buruz lehen ez zenekiena?",
+        "placeholder": "Ikasitako edo jasotako datu berriak azaldu...",
+        "required": false,
+        "maxLength": 400
+      },
+      {
+        "id": "algo_en_falta",
+        "type": "textarea",
+        "label": "Zerbait faltan bota duzu erakusketan?",
+        "placeholder": "Zer gehituko zenukeen edo ikusi nahiko zenukeen...",
+        "required": false,
+        "maxLength": 400
+      },
+      {
+        "id": "origen_alava",
+        "type": "chips",
+        "label": "Arabakoa zara?",
+        "hint": "Erantzun honekin hurrengo galderak moldatzen ditugu.",
+        "required": true,
+        "options": [
+          { "value": "yes", "label": "Bai" },
+          { "value": "no", "label": "Ez" }
+        ],
+        "jump_if": {
+          "value": "no",
+          "target": "visitas_expos"
+        }
+      },
+      {
+        "id": "asociaciones_alava",
+        "type": "chips",
+        "section_title": "ARABA",
+        "label": "Zein hitzek lotzen dituzu Arabaren izenarekin? Eta Gasteizkoarekin?",
+        "required": true,
+        "multi": true,
+        "options": [
+          { "value": "innovacion", "label": "Berrikuntza" },
+          { "value": "educacion", "label": "Hezkuntza" },
+          { "value": "tradicion", "label": "Tradizioa" },
+          { "value": "integracion", "label": "Integrazioa" },
+          { "value": "modernidad", "label": "Modernitatea" },
+          { "value": "bienestar", "label": "Ongizatea" },
+          { "value": "calidad_vida", "label": "Bizitza-kalitatea" },
+          { "value": "diversidad", "label": "Aniztasuna" },
+          { "value": "talento", "label": "Talentua" },
+          { "value": "sostenibilidad", "label": "Iraunkortasuna" },
+          { "value": "creatividad", "label": "Sormena" },
+          { "value": "vanguardia", "label": "Aitzindaritza" },
+          { "value": "tecnologia", "label": "Teknologia" }
+        ],
+        "comment_field": {
+          "id": "asociaciones_alava_comentario",
+          "type": "textarea",
+          "label": "Zergatik aukeratu dituzu hitz horiek?",
+          "placeholder": "Zure loturak azaltzeko xehetasunak...",
+          "required": false,
+          "maxLength": 400,
+          "rows": 3
+        }
+      },
+      {
+        "id": "sentirse_alaves",
+        "type": "textarea",
+        "label": "Zer da zuretzat arabartzat sentitzea?",
+        "placeholder": "Zure hitzekin azaldu...",
+        "required": false,
+        "maxLength": 400
+      },
+      {
+        "id": "orgullo_alava",
+        "type": "textarea",
+        "label": "Zertaz zaude harroen?",
+        "placeholder": "Zerk ematen dizu harrotasuna...",
+        "required": false,
+        "maxLength": 400
+      },
+      {
+        "id": "reto_futuro_alava",
+        "type": "textarea",
+        "label": "Zein da zure ustez Arabaren etorkizuneko erronka handiena?",
+        "placeholder": "Azaldu garrantzitsuen iruditzen zaizun erronka...",
+        "required": false,
+        "maxLength": 400
+      },
+      {
+        "id": "visitas_expos",
+        "type": "chips",
+        "section_title": "INTERESAK",
+        "label": "Ohikoa al duzu erakusketak bisitatzea? Zenbatean maiztasunez?",
+        "required": true,
+        "options": [
+          { "value": "1_2", "label": "Urtean 1 edo 2 aldiz" },
+          { "value": "3_5", "label": "Urtean 3 eta 5 artean" },
+          { "value": "6_mas", "label": "Urtean 6 aldiz edo gehiago" }
+        ],
+        "comment_field": {
+          "id": "visitas_expos_comentario",
+          "type": "textarea",
+          "label": "Kontatu zure bisitei buruz gehiago",
+          "placeholder": "Adibidez, zein erakusketa motak gustatzen zaizkizun...",
+          "required": false,
+          "maxLength": 400,
+          "rows": 3
+        }
+      },
+      {
+        "id": "canal_conocimiento",
+        "type": "chips",
+        "section_title": "INTERESAK",
+        "label": "Nola izan duzu erakusketa honen berri?",
+        "required": true,
+        "options": [
+          { "value": "prensa", "label": "Prentsa" },
+          { "value": "internet", "label": "Internet" },
+          { "value": "rrss", "label": "Sare sozialak" },
+          { "value": "familia_amigos", "label": "Familia/Lagunak" },
+          { "value": "otros", "label": "Beste batzuk" }
+        ]
+      },
+      {
+        "id": "temas_futuros",
+        "type": "textarea",
+        "section_title": "INTERESAK",
+        "label": "Zer beste gai ikusiko zenituzke gustura zentro berriaren etorkizuneko erakusketetan?",
+        "placeholder": "Partekatu ideiak...",
+        "required": false,
+        "maxLength": 400
+      },
+      {
+        "id": "actividades_centro",
+        "type": "textarea",
+        "section_title": "INTERESAK",
+        "label": "Zein motatako jarduerak aurkitu nahiko zenituzke zentro berrian?",
+        "placeholder": "Adibidez: tailerrak, hitzaldiak, kontzertuak...",
+        "required": false,
+        "maxLength": 400
+      },
+      {
+        "id": "conoces_vital",
+        "type": "chips",
+        "section_title": "INTERESAK",
+        "label": "Vital Fundazioaren lana ezagutzen duzu?",
+        "required": true,
+        "options": [
+          { "value": "yes", "label": "Bai" },
+          { "value": "some", "label": "Apur bat" },
+          { "value": "no", "label": "Ez" }
+        ],
+        "comment_field": {
+          "id": "conoces_vital_comentario",
+          "type": "textarea",
+          "label": "Azken iruzkinik gehitu nahi duzu?",
+          "placeholder": "Zer dakizun edo zer jakin nahiko zenukeen kontaiguzu...",
+          "required": false,
+          "maxLength": 400,
+          "rows": 3
+        }
+      }
+    ],
+    "en": [
+      {
+        "id": "datos_demograficos",
+        "type": "form",
+        "label": "First, tell us a bit about yourself",
+        "hint": "We will only use this information to better understand the results.",
+        "required": true,
+        "fields": [
+          {
+            "id": "codigo_postal",
+            "type": "text",
+            "label": "Postal code",
+            "placeholder": "e.g. 01001",
+            "required": true,
+            "maxLength": 5
+          },
+          {
+            "id": "edad",
+            "type": "number",
+            "label": "Age",
+            "placeholder": "Your age",
+            "required": true,
+            "min": 10,
+            "max": 120
+          },
+          {
+            "id": "genero",
+            "type": "select",
+            "label": "Gender",
+            "required": true,
+            "options": [
+              { "value": "woman", "label": "Woman" },
+              { "value": "man", "label": "Man" },
+              { "value": "nonbinary", "label": "Non-binary" },
+              { "value": "no_answer", "label": "Prefer not to say" }
+            ]
+          },
+          {
+            "id": "nivel_estudios",
+            "type": "select",
+            "label": "Education level",
+            "required": true,
+            "options": [
+              { "value": "sin_estudios", "label": "No formal studies" },
+              { "value": "obligatorios", "label": "Compulsory education" },
+              { "value": "bachillerato_fp", "label": "Upper secondary / Vocational" },
+              { "value": "universitarios", "label": "University / Postgraduate" }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "valoracion_exposicion",
+        "type": "rating",
+        "label": "How did you like the exhibition?",
+        "hint": "1 = very poor, 10 = excellent.",
+        "required": true,
+        "min": 1,
+        "max": 10,
+        "comment_field": {
+          "id": "comentario_exposicion",
+          "type": "textarea",
+          "label": "Leave a comment if you want",
+          "placeholder": "Tell us what you liked most or what you would improve...",
+          "required": false,
+          "maxLength": 400,
+          "rows": 4
+        }
+      },
+      {
+        "id": "contenido_interesante",
+        "type": "chips",
+        "label": "Which content did you find most interesting?",
+        "required": true,
+        "options": [
+          { "value": "dibujar_territorio", "label": "Drawing the Territory" },
+          { "value": "voces_territorio", "label": "Voices of the Territory" },
+          { "value": "camino_futuro", "label": "Road to the Future" }
+        ],
+        "comment_field": {
+          "id": "contenido_interesante_comentario",
+          "type": "textarea",
+          "label": "Why did you find that content interesting?",
+          "placeholder": "Share any details or feelings...",
+          "required": false,
+          "maxLength": 400,
+          "rows": 3
+        }
+      },
+      {
+        "id": "personaje_importante",
+        "type": "select",
+        "label": "Which of the featured figures do you consider most important for Álava?",
+        "required": true,
+        "options": [
+          { "value": "simon_de_anda", "label": "Simón de Anda" },
+          { "value": "manuel_iradier", "label": "Manuel Iradier" },
+          { "value": "mariano_diez_tobar", "label": "Mariano Díez Tobar" },
+          { "value": "maria_sarmiento", "label": "María Sarmiento" },
+          { "value": "ernestina_de_champourcin", "label": "Ernestina de Champourcín" },
+          { "value": "pedro_lopez_de_ayala", "label": "Pedro López de Ayala" },
+          { "value": "juan_perez_de_lazarraga", "label": "Juan Pérez de Lazarraga" },
+          { "value": "micaela_portilla", "label": "Micaela Portilla" },
+          { "value": "ella_fitzgerald", "label": "Ella Fitzgerald" },
+          { "value": "jesus_guridi", "label": "Jesús Guridi" },
+          { "value": "maria_de_maeztu", "label": "María de Maeztu" },
+          { "value": "naipera", "label": "Naipera" }
+        ],
+        "comment_field": {
+          "id": "personaje_atencion_comentario",
+          "type": "textarea",
+          "label": "Which one caught your attention the most?",
+          "placeholder": "Tell us what stood out or why you chose it...",
+          "required": false,
+          "maxLength": 400,
+          "rows": 3
+        }
+      },
+      {
+        "id": "aprendizaje_alava",
+        "type": "textarea",
+        "label": "What did you learn in this exhibition that you didn't know about Álava?",
+        "placeholder": "Describe any new learnings or facts you are taking with you...",
+        "required": false,
+        "maxLength": 400
+      },
+      {
+        "id": "algo_en_falta",
+        "type": "textarea",
+        "label": "Did you miss anything in the exhibition?",
+        "placeholder": "Tell us what you would add or what you would have liked to see...",
+        "required": false,
+        "maxLength": 400
+      },
+      {
+        "id": "origen_alava",
+        "type": "chips",
+        "label": "Are you from Álava?",
+        "hint": "We use this answer to adapt the next questions.",
+        "required": true,
+        "options": [
+          { "value": "yes", "label": "Yes" },
+          { "value": "no", "label": "No" }
+        ],
+        "jump_if": {
+          "value": "no",
+          "target": "visitas_expos"
+        }
+      },
+      {
+        "id": "asociaciones_alava",
+        "type": "chips",
+        "section_title": "ALAVA",
+        "label": "Which words do you associate with Álava? And with Vitoria-Gasteiz?",
+        "required": true,
+        "multi": true,
+        "options": [
+          { "value": "innovacion", "label": "Innovation" },
+          { "value": "educacion", "label": "Education" },
+          { "value": "tradicion", "label": "Tradition" },
+          { "value": "integracion", "label": "Integration" },
+          { "value": "modernidad", "label": "Modernity" },
+          { "value": "bienestar", "label": "Well-being" },
+          { "value": "calidad_vida", "label": "Quality of life" },
+          { "value": "diversidad", "label": "Diversity" },
+          { "value": "talento", "label": "Talent" },
+          { "value": "sostenibilidad", "label": "Sustainability" },
+          { "value": "creatividad", "label": "Creativity" },
+          { "value": "vanguardia", "label": "Avant-garde" },
+          { "value": "tecnologia", "label": "Technology" }
+        ],
+        "comment_field": {
+          "id": "asociaciones_alava_comentario",
+          "type": "textarea",
+          "label": "Why did you choose those words?",
+          "placeholder": "Add any details about your associations...",
+          "required": false,
+          "maxLength": 400,
+          "rows": 3
+        }
+      },
+      {
+        "id": "sentirse_alaves",
+        "type": "textarea",
+        "label": "What does feeling Alavese mean to you?",
+        "placeholder": "Describe it in your own words...",
+        "required": false,
+        "maxLength": 400
+      },
+      {
+        "id": "orgullo_alava",
+        "type": "textarea",
+        "label": "What makes you feel most proud?",
+        "placeholder": "Tell us what gives you pride...",
+        "required": false,
+        "maxLength": 400
+      },
+      {
+        "id": "reto_futuro_alava",
+        "type": "textarea",
+        "label": "What do you see as Álava's biggest future challenge?",
+        "placeholder": "Describe the challenge you consider most important...",
+        "required": false,
+        "maxLength": 400
+      },
+      {
+        "id": "visitas_expos",
+        "type": "chips",
+        "section_title": "INTERESTS",
+        "label": "Do you usually visit exhibitions? How often?",
+        "required": true,
+        "options": [
+          { "value": "1_2", "label": "1 or 2 times a year" },
+          { "value": "3_5", "label": "3 to 5 times a year" },
+          { "value": "6_mas", "label": "More than 6 times a year" }
+        ],
+        "comment_field": {
+          "id": "visitas_expos_comentario",
+          "type": "textarea",
+          "label": "Tell us more about your visits",
+          "placeholder": "For example, what type of exhibitions you prefer...",
+          "required": false,
+          "maxLength": 400,
+          "rows": 3
+        }
+      },
+      {
+        "id": "canal_conocimiento",
+        "type": "chips",
+        "section_title": "INTERESTS",
+        "label": "How did you hear about this exhibition?",
+        "required": true,
+        "options": [
+          { "value": "prensa", "label": "Press" },
+          { "value": "internet", "label": "Internet" },
+          { "value": "rrss", "label": "Social media" },
+          { "value": "familia_amigos", "label": "Family/Friends" },
+          { "value": "otros", "label": "Other" }
+        ]
+      },
+      {
+        "id": "temas_futuros",
+        "type": "textarea",
+        "section_title": "INTERESTS",
+        "label": "What other topics would you like to see in future exhibitions at the new center?",
+        "placeholder": "Share a few ideas...",
+        "required": false,
+        "maxLength": 400
+      },
+      {
+        "id": "actividades_centro",
+        "type": "textarea",
+        "section_title": "INTERESTS",
+        "label": "What kind of activities would you like to find in the new center?",
+        "placeholder": "For example: workshops, talks, concerts...",
+        "required": false,
+        "maxLength": 400
+      },
+      {
+        "id": "conoces_vital",
+        "type": "chips",
+        "section_title": "INTERESTS",
+        "label": "Do you know the work of Fundación Vital Fundazioa?",
+        "required": true,
+        "options": [
+          { "value": "yes", "label": "Yes" },
+          { "value": "some", "label": "Somewhat" },
+          { "value": "no", "label": "No" }
+        ],
+        "comment_field": {
+          "id": "conoces_vital_comentario",
+          "type": "textarea",
+          "label": "Want to add any final comment?",
+          "placeholder": "Tell us what you know or what you'd like to know...",
+          "required": false,
+          "maxLength": 400,
+          "rows": 3
+        }
+      }
+    ]
+  }
+}

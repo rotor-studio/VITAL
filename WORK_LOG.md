@@ -1,0 +1,14 @@
+# Registro de trabajo (encuesta multilingüe)
+
+- Se configuró la encuesta para soportar tres idiomas (castellano, euskera, inglés) creando un archivo `app/static/questions.json` con todas las preguntas y opciones traducidas. Se añadió la pregunta “¿Eres de Álava?” con salto condicional para omitir las preguntas locales si responde “No”.
+- Se reescribió `app/static/survey.js` para mostrar una pantalla inicial de selección de idioma, cargar los pasos del idioma elegido, localizar textos de interfaz (botones, mensajes, progreso) y mantener la lógica previa (multi chips, comentarios, validaciones y saltos).
+- Se actualizó `app/templates/survey.html` para mostrar el selector de idioma (estilos, textos de cabecera) y dejar el cuerpo preparado para la lógica dinámica.
+- El backend y el panel de moderación ahora respetan todos los campos del payload:
+  * `app/routers/admin.py` expone un endpoint `/api/admin/fields`, incluye metadatos (created_at, idioma) en `/pending` y genera exportaciones CSV con todas las columnas dinámicas.
+  * `app/static/admin.js` y `app/templates/admin.html` renderizan las respuestas en tarjetas legibles mostrando cada campo con su etiqueta, además de usar el nuevo endpoint de campos para mantener el orden.
+- Actualmente hay que levantar el servidor con `uvicorn app.main:app --reload`, probar los tres idiomas (incluyendo el salto condicional) y revisar en `/admin` que la moderación muestra cada campo y que la exportación CSV incluye todas las columnas.
+- Se rediseñó `/visual` con un mapa de fondo opcional (tecla M), círculos centrales por CP y nodos conectados por género (colores, tamaños y animación); el front (`app/static/visual_map.js` y `app/templates/visual.html`) ahora lee `/api/visual/points` para pintar cada género alrededor del círculo y escalar el tamaño por número de respuestas.
+- Se refinó la visualización radial: el círculo central ahora incluye el nombre y las conexiones salen desde su perímetro hacia nodos de género animados (movimiento lateral y vertical, tamaños proporcionados), con la tecla M para alternar el mapa de fondo.
+- Se refinó la visualización radial: el círculo central ahora incluye el nombre, las conexiones salen del perímetro y los nodos de género se distribuyen con movimiento suave (tecla M sigue alternando el mapa).
+- Se añadió un mazo de personajes bajo la leyenda del mapa: el backend (`/api/visual/points`) agrega las menciones de `personaje_importante`, expone los porcentajes y sirve las imágenes de `app/images/personajes`, mientras que `visual.html`/`visual_map.js` renderizan una pila dinámica que destaca temporalmente los datos de cada carta.
+- La pila de personajes ocupa toda la columna izquierda, elimina fondos innecesarios, muestra cartas más altas con los votos junto al nombre y añade una animación de plegado/despliegue cuando llega un nuevo personaje (los datos se ocultan comprimidos bajo la pantalla y luego reaparecen en su posición actualizada).

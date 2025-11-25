@@ -1,0 +1,12 @@
+__pycache__/
+.pytest_cache/
+.venv/
+env/
+*.pyc
+*.db
+.DS_Store
+*.DS_Store
+run.sh
+encuesta.db
+.idea/
+app/static/mapa_referencia1.png

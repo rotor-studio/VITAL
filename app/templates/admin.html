@@ -1,0 +1,38 @@
+<!doctype html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="/static/styles.css" />
+  <title>Admin</title>
+  <style>
+    .bar { display:flex; gap:1rem; align-items:center; margin-bottom:1rem; }
+    .pill { background:#1f2937; padding:.35rem .7rem; border-radius:999px; font-size:.9rem; }
+    .danger { background:#7f1d1d; }
+    .ok { background:#064e3b; }
+    ul { list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:12px; }
+    .moderation-card { background:#111827; border:1px solid #1f2937; border-radius:12px; padding:14px; }
+    .card-head { display:flex; flex-wrap:wrap; gap:8px; justify-content:space-between; align-items:center; margin-bottom:10px; font-size:.95rem; }
+    .card-body div { margin:4px 0; }
+    .card-body strong { display:inline-block; min-width:160px; font-weight:600; }
+    .actions button { margin-left:6px; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Moderación</h1>
+
+    <div class="bar">
+      <span class="pill">Total: <b id="c-total">0</b></span>
+      <span class="pill ok">Aprobadas: <b id="c-approved">0</b></span>
+      <span class="pill">Pendientes: <b id="c-pending">0</b></span>
+      <span class="pill">Rechazadas: <b id="c-rejected">0</b></span>
+      <span class="pill" id="last">Última aprobación: —</span>
+      <button id="btn-export">Exportar CSV</button>
+      <button id="btn-reset" class="danger">Reiniciar base</button>
+    </div>
+
+    <ul id="pending"></ul>
+  </main>
+  <script src="/static/admin.js"></script>
+</body>
+</html>

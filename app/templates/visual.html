@@ -1,0 +1,316 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Mapa de códigos postales</title>
+  <style>
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+      background: #000;
+    }
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      background: url("/static/mapa_referencia.png") center/cover no-repeat;
+      z-index: 0;
+      opacity: 1;
+      transition: opacity .3s ease;
+    }
+    body.map-hidden::before {
+      opacity: 0;
+    }
+    body.map-hidden { background:#dde1e5; }
+    body.map-hidden .map-overlay { background:#eceff1; }
+    .map-overlay {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      height: 100%;
+      background: rgba(225, 228, 232, 0.2);
+    }
+    #markers {
+      position: absolute;
+      inset: 0;
+    }
+    .marker {
+      position: absolute;
+      transform: translate(-50%, -50%);
+      color: #fff;
+      pointer-events: none;
+    }
+    .marker .core {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      border-radius: 50%;
+      border: 2px solid rgba(255,255,255,0.8);
+      box-shadow: 0 0 15px rgba(0,0,0,0.4);
+      animation: pulse 8s ease-in-out infinite;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      text-align:center;
+      padding:12px;
+      color:#041b0c;
+      font-weight:600;
+      white-space:pre-line;
+    }
+    .marker .label {
+      position: absolute;
+      top: calc(50% + 60px);
+      left: 50%;
+      transform: translateX(-50%);
+      color: #111;
+      background: rgba(255,255,255,0.85);
+      padding: 6px 12px;
+      border-radius: 999px;
+      font-size: 0.85rem;
+      box-shadow: 0 3px 16px rgba(0,0,0,0.25);
+    }
+    .gender-node {
+      position: absolute;
+      border-radius: 50%;
+      color: #222;
+      font-size: 0.7rem;
+      text-align: center;
+      padding: 6px;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.35);
+      animation: float 6s ease-in-out infinite;
+      pointer-events: none;
+      --tx: 0px;
+      --ty: 0px;
+      transform: translate(calc(-50% + var(--tx)), calc(-50% + var(--ty)));
+    }
+    .connector {
+      position: absolute;
+      width: 2px;
+      background: rgba(255,255,255,0.7);
+      transform-origin: top center;
+      opacity: 0.9;
+    }
+    .side-panel {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      bottom: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      z-index: 2;
+      width: min(260px, 32vw);
+    }
+    .legend {
+      position: relative;
+      top: auto;
+      left: auto;
+      width: 100%;
+      padding: 12px 18px;
+      border-radius: 12px;
+      background: rgba(0, 0, 0, 0.55);
+      color: #fff;
+      backdrop-filter: blur(3px);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+    }
+    .legend h1 {
+      margin: 0 0 6px;
+      font-size: 1.2rem;
+    }
+    .legend p {
+      margin: 3px 0;
+      font-size: 0.85rem;
+    }
+    .character-panel {
+      position: relative;
+      width: 100%;
+      color: #fff;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-height: 420px;
+      padding-bottom: 12px;
+    }
+    .character-panel__title {
+      margin: 0 0 4px;
+      font-size: 0.78rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      opacity: 0.85;
+    }
+    .character-panel__subtitle {
+      margin: 0 0 8px;
+      font-size: 0.8rem;
+      opacity: 0.8;
+    }
+    .characters-stack {
+      position: relative;
+      width: 100%;
+      flex: 1;
+      margin-top: 6px;
+      overflow: hidden;
+      padding-left: 12px;
+      transition: transform 0.55s ease, opacity 0.45s ease;
+      will-change: transform, opacity;
+      transform: translateY(0);
+      opacity: 1;
+    }
+    .characters-stack.stack-folding {
+      transform: translateY(130%);
+      opacity: 0;
+    }
+    .character-stack__empty {
+      margin: 0;
+      font-size: 0.8rem;
+      opacity: 0.7;
+    }
+    .character-card {
+      position: absolute;
+      left: 8px;
+      bottom: 0;
+      width: 160px;
+      height: 280px;
+      border-radius: 18px;
+      overflow: hidden;
+      box-shadow: 0 15px 35px rgba(0,0,0,0.45);
+      transition: transform 0.5s ease, opacity 0.3s ease, bottom 0.55s ease;
+      transform-origin: bottom center;
+      transform: translateX(var(--deck-x, 0px)) rotate(var(--deck-rot, 0deg));
+      z-index: var(--deck-z, 1);
+      border: 1px solid rgba(255,255,255,0.15);
+      background: #1f2933;
+    }
+    .character-card img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .character-card .character-placeholder {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.6rem;
+      font-weight: 600;
+      color: rgba(255,255,255,0.8);
+      background: linear-gradient(135deg, #374151, #111827);
+    }
+    .character-card .character-name {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      padding: 14px 10px 10px;
+      font-size: 0.78rem;
+      background: linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.8) 65%);
+      color: #fff;
+      text-shadow: 0 2px 6px rgba(0,0,0,0.65);
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 6px;
+    }
+    .character-card .character-name span {
+      display: inline-block;
+    }
+    .character-card .character-name .character-label {
+      font-weight: 600;
+    }
+    .character-card .character-name .character-count {
+      font-size: 0.7rem;
+      opacity: 0.9;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+    .character-card .character-score {
+      position: absolute;
+      left: calc(100% + 12px);
+      top: 50%;
+      transform: translateY(-50%);
+      background: rgba(255,255,255,0.12);
+      color: #fff;
+      padding: 6px 14px;
+      border-radius: 999px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      box-shadow: 0 12px 25px rgba(0,0,0,0.35);
+      white-space: nowrap;
+      transition: background 0.35s ease, color 0.35s ease;
+    }
+    .character-card.show-score .character-score {
+      background: rgba(255,255,255,0.95);
+      color: #111;
+    }
+    body.map-hidden .character-panel {
+      background: rgba(255,255,255,0.85);
+      color: #111;
+    }
+    body.map-hidden .character-panel__title {
+      color: #111;
+      opacity: 0.9;
+    }
+    body.map-hidden .character-card {
+      border-color: rgba(0,0,0,0.1);
+      box-shadow: 0 12px 25px rgba(0,0,0,0.2);
+    }
+    body.map-hidden .character-card .character-score {
+      background: rgba(0,0,0,0.12);
+      color: #111;
+    }
+    body.map-hidden .character-card.show-score .character-score {
+      background: #111;
+      color: #fff;
+    }
+    .toggle-hint {
+      position: absolute;
+      right: 20px;
+      bottom: 20px;
+      color: #fff;
+      background: rgba(0,0,0,0.4);
+      padding: 8px 12px;
+      border-radius: 10px;
+      font-size: 0.85rem;
+    }
+    body.map-hidden .toggle-hint { color:#222; background: rgba(0,0,0,0.08); }
+    @keyframes float {
+      0% { transform: translate(calc(-50% + var(--tx)), calc(-50% + var(--ty))); }
+      50% { transform: translate(calc(-50% + var(--tx)), calc(-50% + var(--ty) - 10px)); }
+      100% { transform: translate(calc(-50% + var(--tx)), calc(-50% + var(--ty))); }
+    }
+    @keyframes pulse {
+      0%,100% { transform: translate(-50%, -50%) scale(1); }
+      50% { transform: translate(-50%, -50%) scale(1.05); }
+    }
+  </style>
+</head>
+<body>
+  <div class="map-overlay" id="mapOverlay">
+    <div class="side-panel">
+      <div class="legend">
+        <h1>Mapa de códigos postales</h1>
+        <p id="totalCount">Cargando respuestas…</p>
+      </div>
+      <div class="character-panel">
+        <p class="character-panel__title">Personajes más citados</p>
+        <p class="character-panel__subtitle">Stack dinámico según menciones.</p>
+        <div class="characters-stack" id="characterStack">
+          <p class="character-stack__empty">Analizando menciones…</p>
+        </div>
+      </div>
+    </div>
+    <div id="markers"></div>
+    <div class="toggle-hint">Pulsa <strong>M</strong> para mostrar/ocultar el mapa</div>
+  </div>
+  <script src="/static/visual_map.js?v=personajes"></script>
+</body>
+</html>
