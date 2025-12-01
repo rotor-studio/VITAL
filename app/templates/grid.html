@@ -132,6 +132,16 @@
       align-items: center;
       gap: 6px;
     }
+    .info button {
+      margin-left: 8px;
+      padding: 4px 8px;
+      border-radius: 6px;
+      border: 1px solid rgba(255,255,255,0.45);
+      background: rgba(0,0,0,0.3);
+      color: #fff;
+      cursor: pointer;
+      font-size: 0.8rem;
+    }
     .ray {
       position: absolute;
       background: transparent;
@@ -151,9 +161,11 @@
         <strong>120 x 60</strong> visibles • margen oculto de 3 celdas
         <kbd>M</kbd> mapa
         <kbd>R</kbd> recargar puntos
+        <button id="soundCheck" type="button">🔊 Probar sonido</button>
       </div>
     </div>
   </div>
+  <audio id="soundClip" src="/data/blip.mp3" preload="auto"></audio>
   <script>
     (() => {
       const overlay = document.getElementById("mapOverlay");
@@ -165,16 +177,41 @@
       });
     })();
     (() => {
+      const btn = document.getElementById("soundCheck");
+      const audio = document.getElementById("soundClip");
+      if (!btn || !audio) return;
+      btn.addEventListener("click", async () => {
+        btn.disabled = true;
+        btn.textContent = "Reproduciendo…";
+        audio.currentTime = 0;
+        try {
+          await audio.play();
+          btn.textContent = "✅ Sonó";
+        } catch (err) {
+          console.error("No se pudo reproducir el sonido", err);
+          btn.textContent = "⚠️ No se pudo (Safari necesita gesto)";
+        }
+        setTimeout(() => {
+          btn.disabled = false;
+          btn.textContent = "🔊 Probar sonido";
+        }, 1600);
+      });
+    })();
+    (() => {
       const layer = document.getElementById("pointsLayer");
       const viewport = document.querySelector(".viewport");
       const grid = document.querySelector(".grid");
       const rayLayer = document.getElementById("rayLayer");
+      const audio = document.getElementById("soundClip");
+      const soundBtn = document.getElementById("soundCheck");
       if (!layer || !viewport) return;
 
       let points = [];
       let baseWidth = 1920;
       let baseHeight = 1080;
       let lastTotal = null;
+      let lastMaxTs = null;
+      let audioReady = false;
       const rootStyles = getComputedStyle(document.documentElement);
       const cols = parseInt(rootStyles.getPropertyValue("--cols"), 10) || 120;
       const rows = parseInt(rootStyles.getPropertyValue("--rows"), 10) || 60;
@@ -186,6 +223,13 @@
         "other": "#ffcf5c",
         "prefiero_no_decir": "#a0a0a0",
         "no_responde": "#a0a0a0",
+      };
+      const playBlip = () => {
+        if (!audio) return;
+        audio.currentTime = 0;
+        audio.play().catch((err) => {
+          console.warn("No se pudo reproducir el sonido", err);
+        });
       };
 
       function render() {
@@ -288,7 +332,17 @@
           });
           const total = points.reduce((acc, p) => acc + (p.count || 0), 0);
           console.log("[grid] puntos cargados:", points.length, "total respuestas:", total);
+          const maxTs = Math.max(
+            0,
+            ...points.map((p) => (p.latest_at ? new Date(p.latest_at).getTime() : 0))
+          );
+          const isNewer = lastMaxTs !== null && maxTs > lastMaxTs;
+          const isMore = lastTotal !== null && total > lastTotal;
+          if (audioReady && (isMore || isNewer)) {
+            playBlip();
+          }
           lastTotal = total;
+          lastMaxTs = maxTs;
           render();
         } catch (err) {
           console.error(err);
@@ -300,7 +354,27 @@
         if (ev.key.toLowerCase() === "r") {
           loadPoints();
         }
+        audioReady = true;
       });
+      window.addEventListener("click", () => { audioReady = true; }, { once: true });
+
+      if (soundBtn) {
+        soundBtn.addEventListener("click", async () => {
+          audioReady = true;
+          soundBtn.disabled = true;
+          soundBtn.textContent = "Reproduciendo…";
+          try {
+            playBlip();
+            soundBtn.textContent = "✅ Sonó";
+          } catch (err) {
+            soundBtn.textContent = "⚠️ No se pudo";
+          }
+          setTimeout(() => {
+            soundBtn.disabled = false;
+            soundBtn.textContent = "🔊 Probar sonido";
+          }, 1600);
+        });
+      }
 
       loadPoints();
       setInterval(loadPoints, 10000);

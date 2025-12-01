@@ -17,3 +17,4 @@
 - `/api/visual/points` añade `latest_at` por CP y fallback para CP externos: calcula posición hacia el borde según provincia. Exporta base_size 1920x1080 y la bandera `external`.
 - Las 3 entradas más recientes dibujan líneas desde el cuadro de género al borde en direcciones alternadas (arriba/derecha/abajo/izquierda). Solo se trazan para CP internos.
 - Se añadió `scripts/run_server.sh` para arrancar con el entorno Conda `server` y lanzar `uvicorn app.main:app --reload`.
+- En `/grid` se añadió un botón de prueba de sonido y reproducción automática del blip al detectar nuevas respuestas (vía aumento de total o `latest_at` más reciente), respetando la habilitación de audio del navegador (Safari requiere interacción previa).
