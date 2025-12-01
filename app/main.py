@@ -25,6 +25,7 @@ app.include_router(visual.router)
 # Estáticos y plantillas
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 app.mount("/images", StaticFiles(directory="app/images"), name="images")
+app.mount("/data", StaticFiles(directory="app/data"), name="data")
 templates = Jinja2Templates(directory="app/templates")
 
 @app.get("/")
@@ -38,3 +39,7 @@ def visual_page(request: Request):
 @app.get("/admin")
 def admin_page(request: Request, user: str = Depends(get_current_user)):
     return templates.TemplateResponse("admin.html", {"request": request})
+
+@app.get("/grid")
+def grid_page(request: Request):
+    return templates.TemplateResponse("grid.html", {"request": request})

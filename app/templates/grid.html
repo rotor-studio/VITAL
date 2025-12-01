@@ -1,0 +1,310 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Cuadrícula</title>
+  <style>
+    :root {
+      --bg: #9f9f9f;
+      --cols: 120;
+      --rows: 60;
+      --margin-cells: 3;
+      --cell: 16px;
+      --cell-x: 16px;
+      --cell-y: 18px;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      padding: 12px;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--bg);
+      font-family: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+      color: #fff;
+    }
+    .viewport {
+      position: relative;
+      width: calc(100vw - 24px);
+      aspect-ratio: 16 / 9;
+      max-height: calc(100vh - 24px);
+      overflow: hidden;
+      background: var(--bg);
+      border: 1px solid rgba(255,255,255,0.35);
+      box-shadow: 0 10px 22px rgba(0,0,0,0.18);
+    }
+    .map-overlay {
+      position: absolute;
+      inset: 0;
+      background: url("/static/mapa_referencia.png") center/100% 100% no-repeat;
+      opacity: 0.65;
+      pointer-events: none;
+      transition: opacity 0.2s ease;
+      z-index: 1;
+    }
+    .map-overlay.hidden {
+      opacity: 0;
+    }
+    .grid {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: transparent;
+      background-image:
+        linear-gradient(rgba(255,255,255,0.5) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.5) 1px, transparent 1px);
+      background-size: var(--cell-x) var(--cell-y);
+      z-index: 2;
+    }
+    .points-layer {
+      position: absolute;
+      inset: 0;
+      z-index: 3;
+      pointer-events: none;
+      display: grid;
+      grid-template-columns: repeat(var(--cols), 1fr);
+      grid-template-rows: repeat(var(--rows), 1fr);
+      width: 100%;
+      height: 100%;
+    }
+    .ray {
+      inset: 0;
+      position: absolute;
+      z-index: 4;
+    }
+    .marker-pair {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: 1fr;
+      width: 100%;
+      height: 100%;
+    }
+    .marker {
+      background: #f95e8a;
+      color: #111;
+      font-size: 11px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-shadow: none;
+      width: 100%;
+      height: 100%;
+    }
+    .marker.external {
+      background: rgba(249, 94, 138, 0.5);
+    }
+    .marker.gender {
+      font-size: 0;
+      background: #999;
+    }
+    .info {
+      position: absolute;
+      right: 12px;
+      bottom: 12px;
+      background: rgba(0,0,0,0.35);
+      padding: 8px 12px;
+      border-radius: 10px;
+      font-size: 0.85rem;
+      letter-spacing: 0.01em;
+      backdrop-filter: blur(4px);
+      z-index: 5;
+      pointer-events: auto;
+    }
+    .info strong { font-weight: 700; }
+    .info kbd {
+      display: inline-block;
+      padding: 2px 6px;
+      margin-left: 6px;
+      border-radius: 6px;
+      border: 1px solid rgba(255,255,255,0.45);
+      background: rgba(0,0,0,0.25);
+      font-size: 0.78rem;
+    }
+    .info .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .ray {
+      position: absolute;
+      background: transparent;
+      pointer-events: none;
+      z-index: 4;
+    }
+  </style>
+</head>
+<body>
+  <div class="viewport">
+    <div class="map-overlay" id="mapOverlay" aria-hidden="true"></div>
+    <div class="grid" aria-hidden="true"></div>
+    <svg class="ray" id="rayLayer" aria-hidden="true"></svg>
+    <div class="points-layer" id="pointsLayer" aria-hidden="true"></div>
+    <div class="info">
+      <div class="pill">
+        <strong>120 x 60</strong> visibles • margen oculto de 3 celdas
+        <kbd>M</kbd> mapa
+        <kbd>R</kbd> recargar puntos
+      </div>
+    </div>
+  </div>
+  <script>
+    (() => {
+      const overlay = document.getElementById("mapOverlay");
+      if (!overlay) return;
+      window.addEventListener("keydown", (ev) => {
+        if (ev.key.toLowerCase() === "m") {
+          overlay.classList.toggle("hidden");
+        }
+      });
+    })();
+    (() => {
+      const layer = document.getElementById("pointsLayer");
+      const viewport = document.querySelector(".viewport");
+      const grid = document.querySelector(".grid");
+      const rayLayer = document.getElementById("rayLayer");
+      if (!layer || !viewport) return;
+
+      let points = [];
+      let baseWidth = 1920;
+      let baseHeight = 1080;
+      let lastTotal = null;
+      const rootStyles = getComputedStyle(document.documentElement);
+      const cols = parseInt(rootStyles.getPropertyValue("--cols"), 10) || 120;
+      const rows = parseInt(rootStyles.getPropertyValue("--rows"), 10) || 60;
+      const genderColors = {
+        "man": "#6da7ff",
+        "woman": "#f8a1d1",
+        "nonbinary": "#9b7df0",
+        "otro": "#ffcf5c",
+        "other": "#ffcf5c",
+        "prefiero_no_decir": "#a0a0a0",
+        "no_responde": "#a0a0a0",
+      };
+
+      function render() {
+        const rect = viewport.getBoundingClientRect();
+        const cellW = rect.width / cols;
+        const cellH = rect.height / rows;
+        if (grid) {
+          grid.style.setProperty("--cell-x", `${cellW}px`);
+          grid.style.setProperty("--cell-y", `${cellH}px`);
+        }
+        layer.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+        layer.style.gridTemplateRows = `repeat(${rows}, 1fr)`;
+        layer.style.width = `${rect.width}px`;
+        layer.style.height = `${rect.height}px`;
+        layer.innerHTML = "";
+        if (rayLayer) rayLayer.innerHTML = "";
+        points.forEach((p) => {
+          if (p.x == null || p.y == null) return;
+          let col = Math.max(0, Math.min(cols - 1, Math.floor((p.x / baseWidth) * cols)));
+          const row = Math.max(0, Math.min(rows - 1, Math.floor((p.y / baseHeight) * rows)));
+          if (col === cols - 1) col = cols - 2; // deja espacio para el cuadrito de género
+
+          // Mayoría de género
+          let topGender = null;
+          let topCount = -1;
+          if (p.gender_counts) {
+            Object.entries(p.gender_counts).forEach(([g, c]) => {
+              if (c > topCount) {
+                topCount = c;
+                topGender = g;
+              }
+            });
+          }
+          const genderColor = topGender ? (genderColors[topGender] || "#999") : "#999";
+
+          const wrap = document.createElement("div");
+          wrap.className = "marker-pair";
+          wrap.style.gridColumn = `${col + 1} / span 2`;
+          wrap.style.gridRow = `${row + 1}`;
+
+          const countEl = document.createElement("div");
+          countEl.className = "marker";
+          if (p.external) countEl.classList.add("external");
+          countEl.textContent = p.count;
+          countEl.title = `${p.label || p.codigo_postal} · ${p.count}`;
+
+          const genderEl = document.createElement("div");
+          genderEl.className = "marker gender";
+          if (p.external) genderEl.classList.add("external");
+          genderEl.style.background = p.external ? "rgba(249, 94, 138, 0.5)" : genderColor;
+          genderEl.title = topGender ? `Género mayoritario: ${topGender}` : "Sin género";
+
+          wrap.appendChild(countEl);
+          wrap.appendChild(genderEl);
+          layer.appendChild(wrap);
+
+          if (p.__recent && rayLayer && !p.external) {
+            const cellCenterX = (col + 1.5) * (rect.width / cols); // centro del cuadro de género (2ª celda)
+            const cellCenterY = (row + 0.5) * (rect.height / rows);
+            const dir = p.__dir || 0; // 0 up,1 right,2 down,3 left
+            let x2 = cellCenterX, y2 = cellCenterY;
+            if (dir === 0) y2 = 0;
+            if (dir === 1) x2 = rect.width;
+            if (dir === 2) y2 = rect.height;
+            if (dir === 3) x2 = 0;
+            const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+            line.setAttribute("x1", cellCenterX);
+            line.setAttribute("y1", cellCenterY);
+            line.setAttribute("x2", x2);
+            line.setAttribute("y2", y2);
+            line.setAttribute("stroke", genderColor);
+            line.setAttribute("stroke-width", "3");
+            line.setAttribute("stroke-linecap", "round");
+            rayLayer.setAttribute("width", rect.width);
+            rayLayer.setAttribute("height", rect.height);
+            rayLayer.appendChild(line);
+          }
+        });
+      }
+
+      async function loadPoints() {
+        try {
+          const res = await fetch("/api/visual/points");
+          if (!res.ok) throw new Error("Failed to load points");
+          const data = await res.json();
+          baseWidth = data?.base_size?.width || baseWidth;
+          baseHeight = data?.base_size?.height || baseHeight;
+          points = (data?.points || []).map((p) => ({ ...p, __recent: false, __dir: 0 }));
+          // Marca las 3 más recientes según latest_at
+          const withTime = points
+            .map((p) => ({
+              p,
+              t: p.latest_at ? new Date(p.latest_at).getTime() : 0,
+            }))
+            .sort((a, b) => a.t - b.t);
+          const recent = withTime.slice(-3);
+          recent.forEach((entry, idx) => {
+            entry.p.__recent = true;
+            entry.p.__dir = idx % 4;
+          });
+          const total = points.reduce((acc, p) => acc + (p.count || 0), 0);
+          console.log("[grid] puntos cargados:", points.length, "total respuestas:", total);
+          lastTotal = total;
+          render();
+        } catch (err) {
+          console.error(err);
+        }
+      }
+
+      window.addEventListener("resize", render);
+      window.addEventListener("keydown", (ev) => {
+        if (ev.key.toLowerCase() === "r") {
+          loadPoints();
+        }
+      });
+
+      loadPoints();
+      setInterval(loadPoints, 10000);
+    })();
+  </script>
+</body>
+</html>

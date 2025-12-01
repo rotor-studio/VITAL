@@ -4,12 +4,15 @@ from app.models import Response
 from pathlib import Path
 from functools import lru_cache
 import csv
+from datetime import datetime
 
 router = APIRouter(prefix="/api/visual", tags=["visual"])
 
 ZIP_CSV = Path(__file__).resolve().parents[2] / "app" / "data" / "zipcode_pix.csv"
 BASE_WIDTH = 1920
 BASE_HEIGHT = 1080
+BASE_CENTER = (BASE_WIDTH / 2, BASE_HEIGHT / 2)
+ALAVA_COORD = (42.8467, -2.6720)
 CHARACTER_IMAGE_BASE = "/images/personajes"
 CHARACTER_CARDS = {
     "simon_de_anda": {"label": "Simón de Anda", "image": "Simon de Anda R.jpg"},
@@ -82,6 +85,99 @@ def _normalize_postal(cp: str) -> str:
         value = value.zfill(5)
     return value
 
+# Aproximación de centroides provinciales (lat, lon) para códigos fuera de Álava.
+PROVINCE_CENTROIDS = {
+    "01": (42.8467, -2.6720),  # Álava
+    "02": (38.9833, -1.85),    # Albacete
+    "03": (38.3452, -0.4810),  # Alicante
+    "04": (36.8340, -2.4637),  # Almería
+    "05": (40.6566, -4.6810),  # Ávila
+    "06": (38.8786, -6.9703),  # Badajoz
+    "07": (39.6953, 3.0176),   # Baleares (Palma)
+    "08": (41.3874, 2.1686),   # Barcelona
+    "09": (42.3439, -3.6969),  # Burgos
+    "10": (39.4753, -6.3710),  # Cáceres
+    "11": (36.5164, -6.2994),  # Cádiz
+    "12": (39.9864, -0.0513),  # Castellón
+    "13": (38.9849, -3.9291),  # Ciudad Real
+    "14": (37.8847, -4.7792),  # Córdoba
+    "15": (43.3623, -8.4115),  # A Coruña
+    "16": (40.0704, -2.1374),  # Cuenca
+    "17": (41.9794, 2.8214),   # Girona
+    "18": (37.1773, -3.5986),  # Granada
+    "19": (40.6333, -3.1667),  # Guadalajara
+    "20": (43.3183, -1.9812),  # Gipuzkoa
+    "21": (37.2614, -6.9447),  # Huelva
+    "22": (42.1361, -0.4089),  # Huesca
+    "23": (37.7796, -3.7849),  # Jaén
+    "24": (42.5987, -5.5671),  # León
+    "25": (41.6176, 0.6200),   # Lleida
+    "26": (42.4627, -2.4440),  # La Rioja
+    "27": (43.0097, -7.5560),  # Lugo
+    "28": (40.4168, -3.7038),  # Madrid
+    "29": (36.7213, -4.4214),  # Málaga
+    "30": (37.9922, -1.1307),  # Murcia
+    "31": (42.8196, -1.6440),  # Navarra
+    "32": (42.3383, -7.8639),  # Ourense
+    "33": (43.3619, -5.8494),  # Asturias
+    "34": (42.0097, -4.5288),  # Palencia
+    "35": (28.0997, -15.4134), # Las Palmas
+    "36": (42.4333, -8.6444),  # Pontevedra
+    "37": (40.9701, -5.6635),  # Salamanca
+    "38": (28.4682, -16.2546), # Santa Cruz de Tenerife
+    "39": (43.4623, -3.8099),  # Cantabria
+    "40": (40.9429, -4.1088),  # Segovia
+    "41": (37.3891, -5.9845),  # Sevilla
+    "42": (41.7660, -2.4790),  # Soria
+    "43": (41.1189, 1.2445),   # Tarragona
+    "44": (40.3440, -1.1069),  # Teruel
+    "45": (39.8628, -4.0273),  # Toledo
+    "46": (39.4699, -0.3763),  # Valencia
+    "47": (41.6523, -4.7286),  # Valladolid
+    "48": (43.2630, -2.9350),  # Bizkaia
+    "49": (41.5033, -5.7440),  # Zamora
+    "50": (41.6488, -0.8891),  # Zaragoza
+    "51": (35.8894, -5.3213),  # Ceuta
+    "52": (35.2923, -2.9381),  # Melilla
+}
+
+def _bearing_and_distance_km(lat1, lon1, lat2, lon2):
+    from math import radians, sin, cos, atan2, sqrt
+    R = 6371.0
+    phi1, phi2 = radians(lat1), radians(lat2)
+    dphi = radians(lat2 - lat1)
+    dlambda = radians(lon2 - lon1)
+    a = sin(dphi/2)**2 + cos(phi1)*cos(phi2)*sin(dlambda/2)**2
+    c = 2 * atan2(sqrt(a), sqrt(1 - a))
+    distance = R * c
+    y = sin(dlambda) * cos(phi2)
+    x = cos(phi1)*sin(phi2) - sin(phi1)*cos(phi2)*cos(dlambda)
+    bearing = atan2(y, x)
+    return bearing, distance
+
+def _fallback_external_position(cp: str):
+    """Return a pseudo-position on the edge pointing toward the origin province."""
+    if not cp:
+        return None
+    prefix = cp[:2]
+    coords = PROVINCE_CENTROIDS.get(prefix)
+    if not coords:
+        return None
+    bearing, dist_km = _bearing_and_distance_km(ALAVA_COORD[0], ALAVA_COORD[1], coords[0], coords[1])
+    # Escala la distancia para empujar más hacia el borde (0.4 a 0.95 del radio)
+    from math import cos, sin
+    radius_base = min(BASE_WIDTH, BASE_HEIGHT) / 2
+    dist_norm = min(dist_km / 900, 1.0)  # 900 km ~ empuja a borde
+    # Empuja un poco más lejos de la masa central (más de la mitad del radio)
+    radius = radius_base * (0.55 + 0.6 * dist_norm)
+    cx, cy = BASE_CENTER
+    x = cx + radius * sin(bearing)  # x aumenta hacia el este
+    y = cy - radius * cos(bearing)  # y aumenta hacia el sur en pantalla
+    # Mantener dentro de los límites de la imagen
+    x = max(0, min(BASE_WIDTH, x))
+    y = max(0, min(BASE_HEIGHT, y))
+    return x, y
+
 
 @router.get("/points")
 def postal_points(status: str = "approved"):
@@ -104,7 +200,16 @@ def postal_points(status: str = "approved"):
         postal = _normalize_postal(str(postal_raw))
         entry = mapping.get(postal)
         if not entry or entry.get("x") is None or entry.get("y") is None:
-            continue
+            fallback_xy = _fallback_external_position(postal)
+            if not fallback_xy:
+                continue
+            entry = {
+                "codigo_postal": postal,
+                "label": f"CP {postal}",
+                "x": fallback_xy[0],
+                "y": fallback_xy[1],
+                "external": True,
+            }
         bucket = buckets.setdefault(
             postal,
             {
@@ -116,6 +221,8 @@ def postal_points(status: str = "approved"):
                 "genders": set(),
                 "responses": [],
                 "gender_counts": {},
+                "external": bool(entry.get("external")),
+                "latest_at": None,
             },
         )
         bucket["count"] += 1
@@ -130,10 +237,15 @@ def postal_points(status: str = "approved"):
                 "payload": payload,
             }
         )
+        # track la fecha más reciente del bucket
+        if not bucket["latest_at"] or row.created_at > bucket["latest_at"]:
+            bucket["latest_at"] = row.created_at
     # finalize genders as list
     points = []
     for data in buckets.values():
         data["genders"] = sorted(list(data["genders"]))
+        if isinstance(data.get("latest_at"), datetime):
+            data["latest_at"] = data["latest_at"].isoformat()
         points.append(data)
     characters = _format_character_cards(character_counts)
     return {
