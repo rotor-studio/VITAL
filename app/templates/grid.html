@@ -148,6 +148,47 @@
       pointer-events: none;
       z-index: 4;
     }
+    .timeline {
+      position: absolute;
+      inset: 0;
+      z-index: 5;
+      pointer-events: none;
+    }
+    .timeline__bubble {
+      position: absolute;
+      display: inline-flex;
+      flex-direction: column;
+      gap: 6px;
+      min-width: 200px;
+      max-width: 420px;
+      padding: 12px 14px;
+      border-radius: 0;
+      background: rgba(0, 0, 0, 0.85);
+      color: #f8f8f8;
+      border: 2px solid #f95e8a;
+      box-shadow: 0 12px 30px rgba(0,0,0,0.35);
+      font-size: 0.9rem;
+      opacity: 0;
+      transform: translate(-50%, -10px);
+      transition: opacity 0.35s ease, transform 0.35s ease;
+      left: 50%;
+      top: 50%;
+      pointer-events: none;
+    }
+    .timeline__bubble.visible {
+      opacity: 1;
+      transform: translate(-50%, -18px);
+    }
+    .timeline__cp {
+      font-weight: 700;
+      color: #ffd5e4;
+      font-size: 0.85rem;
+      letter-spacing: 0.02em;
+    }
+    .timeline__text {
+      line-height: 1.3;
+      white-space: pre-wrap;
+    }
   </style>
 </head>
 <body>
@@ -164,8 +205,15 @@
         <button id="soundCheck" type="button">🔊 Probar sonido</button>
       </div>
     </div>
+    <div class="timeline">
+      <div class="timeline__bubble" id="timelineBubble">
+        <div class="timeline__cp"></div>
+        <div class="timeline__text"></div>
+      </div>
+    </div>
   </div>
   <audio id="soundClip" src="/data/blip.mp3" preload="auto"></audio>
+  <audio id="bubbleClip" src="/data/blip2.mp3" preload="auto"></audio>
   <script>
     (() => {
       const overlay = document.getElementById("mapOverlay");
@@ -203,6 +251,7 @@
       const grid = document.querySelector(".grid");
       const rayLayer = document.getElementById("rayLayer");
       const audio = document.getElementById("soundClip");
+      const bubbleAudio = document.getElementById("bubbleClip");
       const soundBtn = document.getElementById("soundCheck");
       if (!layer || !viewport) return;
 
@@ -212,6 +261,12 @@
       let lastTotal = null;
       let lastMaxTs = null;
       let audioReady = false;
+      let timelineItems = [];
+      let timelineIndex = 0;
+      let viewportRect = null;
+      const bubble = document.getElementById("timelineBubble");
+      const bubbleCp = bubble?.querySelector(".timeline__cp");
+      const bubbleText = bubble?.querySelector(".timeline__text");
       const rootStyles = getComputedStyle(document.documentElement);
       const cols = parseInt(rootStyles.getPropertyValue("--cols"), 10) || 120;
       const rows = parseInt(rootStyles.getPropertyValue("--rows"), 10) || 60;
@@ -224,16 +279,112 @@
         "prefiero_no_decir": "#a0a0a0",
         "no_responde": "#a0a0a0",
       };
-      const playBlip = () => {
-        if (!audio) return;
-        audio.currentTime = 0;
-        audio.play().catch((err) => {
-          console.warn("No se pudo reproducir el sonido", err);
-        });
+      const playAudio = (el) => {
+        if (!el) return;
+        try {
+          const clone = el.cloneNode(true);
+          clone.currentTime = 0;
+          clone.play().catch(() => {});
+        } catch (err) {
+          console.warn("No se pudo reproducir audio", err);
+        }
       };
+      const playBlip = () => {
+        if (!audioReady) return;
+        playAudio(audio);
+      };
+      const playBubbleBlip = () => {
+        if (!audioReady) return;
+        playAudio(bubbleAudio);
+      };
+
+      function buildTimelineItems(list) {
+        const prevLen = timelineItems.length;
+        timelineItems = [];
+        list.forEach((p) => {
+          (p.responses || []).forEach((r) => {
+            const payload = r.payload || {};
+            const messages = preferredFields
+              .map((key) => {
+                const v = payload[key];
+                return typeof v === "string" && v.trim().length > 2 ? v.trim() : "";
+              })
+              .filter(Boolean);
+            if (!messages.length) return;
+            timelineItems.push({
+              cp: p.label || p.codigo_postal,
+              messages,
+              created_at: r.created_at || "",
+              x: p.x,
+              y: p.y,
+            });
+          });
+        });
+        console.log("[timeline] items", timelineItems.map((i) => ({ cp: i.cp, msg: i.msg?.slice(0,50) })));
+        if (timelineItems.length === 0 || prevLen === 0) {
+          timelineIndex = 0;
+        } else {
+          timelineIndex = timelineIndex % timelineItems.length;
+        }
+      }
+
+      const preferredFields = [
+        "comentarios",
+        "comentario",
+        "comentarios_generales",
+        "comentario_exposicion",
+        "contenido_interesante_comentario",
+        "personaje_atencion_comentario",
+        "aprendizaje_alava",
+        "algo_en_falta",
+        "asociaciones_alava",
+        "orgullo_alava",
+        "sentirse_alaves",
+        "visitas_expos_comentario",
+        "temas_futuros",
+        "actividades_centro",
+        "conoces_vital_comentario",
+      ];
+
+      function pickMessage(payload) {
+        if (!payload) return "";
+        for (const key of preferredFields) {
+          const v = payload[key];
+          if (typeof v === "string" && v.trim().length > 2) return v.trim();
+        }
+        return "";
+      }
+
+      function showNextTimeline() {
+        if (!bubble || timelineItems.length === 0 || !viewportRect) return;
+        const item = timelineItems[timelineIndex % timelineItems.length];
+        timelineIndex = (timelineIndex + 1) % timelineItems.length;
+        bubbleCp.textContent = item.cp || "CP";
+        const msgs = item.messages || [];
+        const msg = msgs.length ? msgs[Math.floor(Math.random() * msgs.length)] : "";
+        bubbleText.textContent = msg;
+        console.log("[timeline] mostrando", item.cp, "msg:", msg?.slice(0,80));
+        let left = viewportRect.width / 2;
+        let top = viewportRect.height / 2;
+        if (typeof item.x === "number" && typeof item.y === "number" && baseWidth && baseHeight) {
+          left = (item.x / baseWidth) * viewportRect.width;
+          top = (item.y / baseHeight) * viewportRect.height;
+        }
+        const padding = 20;
+        const offsetX = 80; // desplaza hacia la derecha
+        const offsetY = -80; // desplaza hacia arriba
+        left = Math.max(padding, Math.min(viewportRect.width - padding, left + offsetX));
+        top = Math.max(padding, Math.min(viewportRect.height - padding, top + offsetY));
+        bubble.style.left = `${left}px`;
+        bubble.style.top = `${top}px`;
+        bubble.classList.add("visible");
+        setTimeout(() => bubble.classList.remove("visible"), 6000);
+        playBubbleBlip();
+      }
 
       function render() {
         const rect = viewport.getBoundingClientRect();
+        viewportRect = rect;
         const cellW = rect.width / cols;
         const cellH = rect.height / rows;
         if (grid) {
@@ -318,6 +469,7 @@
           baseWidth = data?.base_size?.width || baseWidth;
           baseHeight = data?.base_size?.height || baseHeight;
           points = (data?.points || []).map((p) => ({ ...p, __recent: false, __dir: 0 }));
+          buildTimelineItems(points);
           // Marca las 3 más recientes según latest_at
           const withTime = points
             .map((p) => ({
@@ -378,6 +530,7 @@
 
       loadPoints();
       setInterval(loadPoints, 10000);
+      setInterval(showNextTimeline, 10000);
     })();
   </script>
 </body>
