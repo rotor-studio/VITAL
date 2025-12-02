@@ -179,6 +179,67 @@
       opacity: 1;
       transform: translate(-50%, -18px);
     }
+    .stats-timeline {
+      position: absolute;
+      inset: 0;
+      z-index: 5;
+      pointer-events: none;
+    }
+    .stats__bubble {
+      position: absolute;
+      display: inline-flex;
+      flex-direction: column;
+      gap: 6px;
+      min-width: 200px;
+      max-width: 420px;
+      padding: 12px 14px;
+      background: rgba(0, 0, 0, 0.85);
+      color: #f8f8f8;
+      border: 2px solid #f95e8a;
+      box-shadow: 0 12px 30px rgba(0,0,0,0.35);
+      font-size: 0.9rem;
+      opacity: 0;
+      transform: translate(-50%, -18px);
+      transition: opacity 0.35s ease, transform 0.35s ease;
+      pointer-events: none;
+      left: 50%;
+      top: 50%;
+    }
+    .stats__bubble.visible {
+      opacity: 1;
+      transform: translate(-50%, -18px);
+    }
+    .stats__title {
+      font-weight: 700;
+      letter-spacing: 0.01em;
+      color: #ffd5e4;
+    }
+    .stats__bar {
+      display: flex;
+      justify-content: center;
+      width: 100%;
+    }
+    .stats__donut {
+      width: 120px;
+      height: 120px;
+    }
+    .stats__legend {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4px 8px;
+      font-size: 0.82rem;
+    }
+    .stats__legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .stats__swatch {
+      width: 12px;
+      height: 12px;
+      border-radius: 2px;
+      flex-shrink: 0;
+    }
     .timeline__cp {
       font-weight: 700;
       color: #ffd5e4;
@@ -211,9 +272,19 @@
         <div class="timeline__text"></div>
       </div>
     </div>
+      <div class="stats-timeline">
+        <div class="stats__bubble" id="statsBubble">
+          <div class="stats__title" id="statsTitle"></div>
+          <div class="stats__bar">
+            <svg class="stats__donut" viewBox="0 0 120 120" id="statsDonut"></svg>
+          </div>
+          <div class="stats__legend" id="statsLegend"></div>
+        </div>
+      </div>
   </div>
   <audio id="soundClip" src="/data/blip.mp3" preload="auto"></audio>
   <audio id="bubbleClip" src="/data/blip2.mp3" preload="auto"></audio>
+  <audio id="statsClip" src="/data/blip3.mp3" preload="auto"></audio>
   <script>
     (() => {
       const overlay = document.getElementById("mapOverlay");
@@ -252,6 +323,7 @@
       const rayLayer = document.getElementById("rayLayer");
       const audio = document.getElementById("soundClip");
       const bubbleAudio = document.getElementById("bubbleClip");
+      const statsAudio = document.getElementById("statsClip");
       const soundBtn = document.getElementById("soundCheck");
       if (!layer || !viewport) return;
 
@@ -264,9 +336,16 @@
       let timelineItems = [];
       let timelineIndex = 0;
       let viewportRect = null;
+      let statsItems = [];
+      let statsIndex = 0;
+      let statsTimer = null;
       const bubble = document.getElementById("timelineBubble");
       const bubbleCp = bubble?.querySelector(".timeline__cp");
       const bubbleText = bubble?.querySelector(".timeline__text");
+      const statsBubble = document.getElementById("statsBubble");
+      const statsTitle = document.getElementById("statsTitle");
+      const statsDonut = document.getElementById("statsDonut");
+      const statsLegend = document.getElementById("statsLegend");
       const rootStyles = getComputedStyle(document.documentElement);
       const cols = parseInt(rootStyles.getPropertyValue("--cols"), 10) || 120;
       const rows = parseInt(rootStyles.getPropertyValue("--rows"), 10) || 60;
@@ -278,6 +357,20 @@
         "other": "#ffcf5c",
         "prefiero_no_decir": "#a0a0a0",
         "no_responde": "#a0a0a0",
+      };
+      const studiesLabels = {
+        "obligatorios": "Obligatorios",
+        "bachillerato_fp": "Bachillerato/FP",
+        "universitarios": "Universitarios",
+        "sin_estudios": "Sin estudios",
+        "otros": "Otros",
+      };
+      const studiesColors = {
+        "obligatorios": "#6da7ff",
+        "bachillerato_fp": "#f8a1d1",
+        "universitarios": "#ffcf5c",
+        "sin_estudios": "#9b7df0",
+        "otros": "#ffffff",
       };
       const playAudio = (el) => {
         if (!el) return;
@@ -296,6 +389,10 @@
       const playBubbleBlip = () => {
         if (!audioReady) return;
         playAudio(bubbleAudio);
+      };
+      const playStatsBlip = () => {
+        if (!audioReady) return;
+        playAudio(statsAudio);
       };
 
       function buildTimelineItems(list) {
@@ -320,11 +417,47 @@
             });
           });
         });
-        console.log("[timeline] items", timelineItems.map((i) => ({ cp: i.cp, msg: i.msg?.slice(0,50) })));
+        console.log("[timeline] items", timelineItems.map((i) => ({ cp: i.cp, msgs: (i.messages || []).length })));
         if (timelineItems.length === 0 || prevLen === 0) {
           timelineIndex = 0;
         } else {
           timelineIndex = timelineIndex % timelineItems.length;
+        }
+      }
+
+      function buildStatsItems(list) {
+        const prevLen = statsItems.length;
+        statsItems = [];
+        list.forEach((p) => {
+          const counts = {};
+          let total = 0;
+          (p.responses || []).forEach((r) => {
+            const lvl = (r.payload?.nivel_estudios || "").trim();
+            if (!lvl) return;
+            counts[lvl] = (counts[lvl] || 0) + 1;
+            total += 1;
+          });
+          if (!total) return;
+          const stats = Object.entries(counts)
+            .map(([key, val]) => ({
+              key,
+              label: studiesLabels[key] || key,
+              count: val,
+              color: studiesColors[key] || "#f95e8a",
+            }))
+            .sort((a, b) => b.count - a.count);
+          statsItems.push({
+            cp: p.label || p.codigo_postal,
+            x: p.x,
+            y: p.y,
+            total,
+            stats,
+          });
+        });
+        if (statsItems.length === 0 || prevLen === 0) {
+          statsIndex = 0;
+        } else {
+          statsIndex = statsIndex % statsItems.length;
         }
       }
 
@@ -357,6 +490,9 @@
 
       function showNextTimeline() {
         if (!bubble || timelineItems.length === 0 || !viewportRect) return;
+        if (bubble.classList.contains("visible")) {
+          return;
+        }
         const item = timelineItems[timelineIndex % timelineItems.length];
         timelineIndex = (timelineIndex + 1) % timelineItems.length;
         bubbleCp.textContent = item.cp || "CP";
@@ -380,6 +516,84 @@
         bubble.classList.add("visible");
         setTimeout(() => bubble.classList.remove("visible"), 6000);
         playBubbleBlip();
+      }
+
+      function showNextStats() {
+        if (!statsBubble || statsItems.length === 0 || !viewportRect) {
+          scheduleStats();
+          return;
+        }
+        // Evita coincidir con el globo de comentarios
+        if (bubble && bubble.classList.contains("visible")) {
+          scheduleStats();
+          return;
+        }
+        const item = statsItems[statsIndex % statsItems.length];
+        statsIndex = (statsIndex + 1) % statsItems.length;
+        const segments = item.stats.slice(0, 6);
+        const total = item.total || 1;
+        statsTitle.textContent = `${item.cp || "CP"} · Nivel de estudios`;
+        if (statsDonut) {
+          statsDonut.innerHTML = "";
+          let offset = 0;
+          segments.forEach((seg) => {
+            const pct = (seg.count / total) * 100;
+            const circumference = 2 * Math.PI * 45;
+            const dash = (pct / 100) * circumference;
+            const gap = circumference - dash;
+            const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+            circle.setAttribute("cx", "60");
+            circle.setAttribute("cy", "60");
+            circle.setAttribute("r", "45");
+            circle.setAttribute("fill", "none");
+            circle.setAttribute("stroke", seg.color);
+            circle.setAttribute("stroke-width", "12");
+            circle.setAttribute("stroke-dasharray", `${dash} ${gap}`);
+            circle.setAttribute("stroke-dashoffset", `${-offset}`);
+            circle.setAttribute("transform", "rotate(-90 60 60)");
+            statsDonut.appendChild(circle);
+            offset += dash;
+          });
+          const inner = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+          inner.setAttribute("cx", "60");
+          inner.setAttribute("cy", "60");
+          inner.setAttribute("r", "25");
+          inner.setAttribute("fill", "rgba(0,0,0,0.85)");
+          statsDonut.appendChild(inner);
+        }
+        if (statsLegend) {
+          statsLegend.innerHTML = "";
+          segments.forEach((seg) => {
+            const pct = Math.round((seg.count / total) * 100);
+            const itemRow = document.createElement("div");
+            itemRow.className = "stats__legend-item";
+            const sw = document.createElement("span");
+            sw.className = "stats__swatch";
+            sw.style.background = seg.color;
+            const txt = document.createElement("span");
+            txt.textContent = `${seg.label}: ${pct}%`;
+            itemRow.appendChild(sw);
+            itemRow.appendChild(txt);
+            statsLegend.appendChild(itemRow);
+          });
+        }
+        let left = viewportRect.width / 2;
+        let top = viewportRect.height / 2;
+        if (typeof item.x === "number" && typeof item.y === "number" && baseWidth && baseHeight) {
+          left = (item.x / baseWidth) * viewportRect.width;
+          top = (item.y / baseHeight) * viewportRect.height;
+        }
+        const padding = 20;
+        const offsetX = -140; // izquierda del punto
+        const offsetY = -40;  // un poco arriba
+        left = Math.max(padding, Math.min(viewportRect.width - padding, left + offsetX));
+        top = Math.max(padding, Math.min(viewportRect.height - padding, top + offsetY));
+        statsBubble.style.left = `${left}px`;
+        statsBubble.style.top = `${top}px`;
+        statsBubble.classList.add("visible");
+        setTimeout(() => statsBubble.classList.remove("visible"), 6000);
+        playStatsBlip();
+        scheduleStats();
       }
 
       function render() {
@@ -470,6 +684,7 @@
           baseHeight = data?.base_size?.height || baseHeight;
           points = (data?.points || []).map((p) => ({ ...p, __recent: false, __dir: 0 }));
           buildTimelineItems(points);
+          buildStatsItems(points);
           // Marca las 3 más recientes según latest_at
           const withTime = points
             .map((p) => ({
@@ -496,6 +711,7 @@
           lastTotal = total;
           lastMaxTs = maxTs;
           render();
+          scheduleStats();
         } catch (err) {
           console.error(err);
         }
@@ -528,6 +744,12 @@
         });
       }
 
+      function scheduleStats() {
+        if (statsTimer) clearTimeout(statsTimer);
+        const delay = 4000 + Math.random() * 11000; // 4s a 15s
+        statsTimer = setTimeout(showNextStats, delay);
+      }
+      scheduleStats();
       loadPoints();
       setInterval(loadPoints, 10000);
       setInterval(showNextTimeline, 10000);
