@@ -81,7 +81,7 @@
     .marker-pair {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      grid-template-rows: 1fr;
+      grid-template-rows: 1fr 1fr;
       width: 100%;
       height: 100%;
     }
@@ -103,6 +103,10 @@
     .marker.gender {
       font-size: 0;
       background: #999;
+    }
+    .marker.study {
+      font-size: 0;
+      background: #ccc;
     }
     .info {
       position: absolute;
@@ -647,22 +651,67 @@
           genderEl.style.background = p.external ? "rgba(249, 94, 138, 0.5)" : genderColor;
           genderEl.title = topGender ? `Género mayoritario: ${topGender}` : "Sin género";
 
+          // Nivel de estudios predominante
+          const studyCounts = {};
+          let studyTotal = 0;
+          (p.responses || []).forEach((r) => {
+            const lvl = (r.payload?.nivel_estudios || "").trim();
+            if (!lvl) return;
+            studyCounts[lvl] = (studyCounts[lvl] || 0) + 1;
+            studyTotal += 1;
+          });
+          let topStudy = null;
+          let topStudyCount = -1;
+          Object.entries(studyCounts).forEach(([k, v]) => {
+            if (v > topStudyCount) {
+              topStudy = k;
+              topStudyCount = v;
+            }
+          });
+          const studyColor = topStudy ? (studiesColors[topStudy] || "#ccc") : "#ccc";
+          const studyEl = document.createElement("div");
+          studyEl.className = "marker study";
+          if (p.external) studyEl.classList.add("external");
+          studyEl.style.background = p.external ? "rgba(249, 94, 138, 0.5)" : studyColor;
+          const studyPct = studyTotal ? Math.round((topStudyCount / studyTotal) * 100) : 0;
+          studyEl.title = topStudy ? `Estudios: ${studiesLabels[topStudy] || topStudy} (${studyPct}%)` : "Sin datos de estudios";
+
           wrap.appendChild(countEl);
           wrap.appendChild(genderEl);
+          studyEl.style.gridColumn = "1";
+          studyEl.style.gridRow = "2";
+          wrap.appendChild(studyEl);
           layer.appendChild(wrap);
 
           if (p.__recent && rayLayer && !p.external) {
-            const cellCenterX = (col + 1.5) * (rect.width / cols); // centro del cuadro de género (2ª celda)
-            const cellCenterY = (row + 0.5) * (rect.height / rows);
+            const cellW = rect.width / cols;
+            const cellH = rect.height / rows;
+            // centro del cuadro de género (col+1, fila superior del par)
+            const x1 = (col + 1.5) * cellW;
+            let y1 = (row - 1) * cellH;
             const dir = p.__dir || 0; // 0 up,1 right,2 down,3 left
-            let x2 = cellCenterX, y2 = cellCenterY;
-            if (dir === 0) y2 = 0;
-            if (dir === 1) x2 = rect.width;
-            if (dir === 2) y2 = rect.height;
-            if (dir === 3) x2 = 0;
+            let x2 = x1;
+            let y2 = y1;
+            if (dir === 0) {
+              const yStart = y1 + cellH; // un cuadrado más abajo
+              y2 = 0;
+              y1 = yStart;
+            } else if (dir === 1) {
+              y1 = (row - 2.2) * cellH;
+              y2 = y1;
+              x2 = rect.width;
+            } else if (dir === 2) {
+              const yStart = y1 - cellH; // un cuadrado más arriba
+              y1 = yStart;
+              y2 = rect.height;
+            } else if (dir === 3) {
+              y1 = (row - 2.2) * cellH;
+              y2 = y1;
+              x2 = 0;
+            }
             const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
-            line.setAttribute("x1", cellCenterX);
-            line.setAttribute("y1", cellCenterY);
+            line.setAttribute("x1", x1);
+            line.setAttribute("y1", y1);
             line.setAttribute("x2", x2);
             line.setAttribute("y2", y2);
             line.setAttribute("stroke", genderColor);
