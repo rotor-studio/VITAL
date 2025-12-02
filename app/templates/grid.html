@@ -73,12 +73,6 @@
       width: 100%;
       height: 100%;
     }
-    .ray {
-      position: absolute;
-      inset: 0;
-      z-index: 4;
-      pointer-events: none;
-    }
     .marker-pair {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -194,10 +188,10 @@
       position: absolute;
       display: inline-flex;
       flex-direction: column;
-      gap: 4px;
+      gap: 6px;
       min-width: 200px;
       max-width: 420px;
-      padding: 8px 10px;
+      padding: 12px 14px;
       background: rgba(0, 0, 0, 0.85);
       color: #f8f8f8;
       border: 2px solid #f95e8a;
@@ -214,16 +208,10 @@
       opacity: 1;
       transform: translate(-50%, -18px);
     }
-    .stats__bubble.is-rating {
-      max-width: 240px;
-      padding: 6px 8px;
-      gap: 2px;
-    }
     .stats__title {
       font-weight: 700;
       letter-spacing: 0.01em;
       color: #ffd5e4;
-      margin: 0;
     }
     .stats__bar {
       display: flex;
@@ -251,25 +239,6 @@
       border-radius: 2px;
       flex-shrink: 0;
     }
-    .stats__bar-row {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      width: 100%;
-      margin-top: 2px;
-    }
-    .stats__bar-fill {
-      height: 8px;
-      border-radius: 2px;
-      flex: 1;
-      position: relative;
-      overflow: hidden;
-      background: rgba(255,255,255,0.1);
-    }
-    .stats__bar-fill span {
-      display: block;
-      height: 100%;
-    }
     .timeline__cp {
       font-weight: 700;
       color: #ffd5e4;
@@ -280,35 +249,13 @@
       line-height: 1.3;
       white-space: pre-wrap;
     }
-    .word-cloud {
-      position: absolute;
-      top: 20px;
-      left: 20px;
-      max-width: 30%;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-      z-index: 5;
-      pointer-events: none;
-      align-items: flex-start;
-    }
-    .word-cloud__item {
-      padding: 3px 6px;
-      border: 1px solid rgba(255,255,255,0.35);
-      background: rgba(0,0,0,0.65);
-      color: #f8f8f8;
-      font-weight: 700;
-      letter-spacing: 0.02em;
-      border-radius: 0;
-    }
   </style>
 </head>
 <body>
-  <div class="viewport">
-    <div class="map-overlay" id="mapOverlay" aria-hidden="true"></div>
-    <div class="grid" aria-hidden="true"></div>
-    <svg class="ray" id="rayLayer" aria-hidden="true"></svg>
-    <div class="points-layer" id="pointsLayer" aria-hidden="true"></div>
+    <div class="viewport">
+      <div class="map-overlay" id="mapOverlay" aria-hidden="true"></div>
+      <div class="grid" aria-hidden="true"></div>
+      <div class="points-layer" id="pointsLayer" aria-hidden="true"></div>
     <div class="info">
       <div class="pill">
         <strong>120 x 60</strong> visibles • margen oculto de 3 celdas
@@ -323,16 +270,15 @@
         <div class="timeline__text"></div>
       </div>
     </div>
-    <div class="stats-timeline">
-      <div class="stats__bubble" id="statsBubble">
-        <div class="stats__title" id="statsTitle"></div>
-        <div class="stats__bar">
-          <svg class="stats__donut" viewBox="0 0 120 120" id="statsDonut"></svg>
+      <div class="stats-timeline">
+        <div class="stats__bubble" id="statsBubble">
+          <div class="stats__title" id="statsTitle"></div>
+          <div class="stats__bar">
+            <svg class="stats__donut" viewBox="0 0 120 120" id="statsDonut"></svg>
+          </div>
+          <div class="stats__legend" id="statsLegend"></div>
         </div>
-        <div class="stats__legend" id="statsLegend"></div>
       </div>
-    </div>
-    <div class="word-cloud" id="wordCloud"></div>
   </div>
   <audio id="soundClip" src="/data/blip.mp3" preload="auto"></audio>
   <audio id="bubbleClip" src="/data/blip2.mp3" preload="auto"></audio>
@@ -372,7 +318,6 @@
       const layer = document.getElementById("pointsLayer");
       const viewport = document.querySelector(".viewport");
       const grid = document.querySelector(".grid");
-      const rayLayer = document.getElementById("rayLayer");
       const audio = document.getElementById("soundClip");
       const bubbleAudio = document.getElementById("bubbleClip");
       const statsAudio = document.getElementById("statsClip");
@@ -391,7 +336,6 @@
       let statsItems = [];
       let statsIndex = 0;
       let statsTimer = null;
-      let cloudItems = [];
       const bubble = document.getElementById("timelineBubble");
       const bubbleCp = bubble?.querySelector(".timeline__cp");
       const bubbleText = bubble?.querySelector(".timeline__text");
@@ -399,7 +343,6 @@
       const statsTitle = document.getElementById("statsTitle");
       const statsDonut = document.getElementById("statsDonut");
       const statsLegend = document.getElementById("statsLegend");
-      const wordCloud = document.getElementById("wordCloud");
       const rootStyles = getComputedStyle(document.documentElement);
       const cols = parseInt(rootStyles.getPropertyValue("--cols"), 10) || 120;
       const rows = parseInt(rootStyles.getPropertyValue("--rows"), 10) || 60;
@@ -426,14 +369,6 @@
         "sin_estudios": "#9b7df0",
         "otros": "#ffffff",
       };
-      const ageBuckets = [
-        { key: "age_u18", label: "<18", min: 0, max: 17, color: "#6da7ff" },
-        { key: "age_18_25", label: "18-25", min: 18, max: 25, color: "#f8a1d1" },
-        { key: "age_26_40", label: "26-40", min: 26, max: 40, color: "#ffcf5c" },
-        { key: "age_41_60", label: "41-60", min: 41, max: 60, color: "#9b7df0" },
-        { key: "age_61p", label: "61+", min: 61, max: 200, color: "#ffffff" },
-      ];
-      const ratingColors = ["#6da7ff","#78b4e8","#86c1d8","#94cfc9","#a2ddba","#b0eda9","#cde680","#e6d85b","#f4c54f","#f8a1d1"];
       const playAudio = (el) => {
         if (!el) return;
         try {
@@ -491,122 +426,36 @@
         const prevLen = statsItems.length;
         statsItems = [];
         list.forEach((p) => {
-          const responses = p.responses || [];
-          // Estudios
           const counts = {};
           let total = 0;
-          responses.forEach((r) => {
+          (p.responses || []).forEach((r) => {
             const lvl = (r.payload?.nivel_estudios || "").trim();
             if (!lvl) return;
             counts[lvl] = (counts[lvl] || 0) + 1;
             total += 1;
           });
-          if (total) {
-            const stats = Object.entries(counts)
-              .map(([key, val]) => ({
-                key,
-                label: studiesLabels[key] || key,
-                count: val,
-                color: studiesColors[key] || "#f95e8a",
-              }))
-              .sort((a, b) => b.count - a.count);
-            statsItems.push({
-              type: "study",
-              cp: p.label || p.codigo_postal,
-              x: p.x,
-              y: p.y,
-              total,
-              stats,
-            });
-          }
-          // Valoración
-          const countsRating = {};
-          let totalRating = 0;
-          responses.forEach((r) => {
-            const raw = (r.payload?.valoracion_exposicion || "").toString().trim();
-            const num = parseInt(raw, 10);
-            if (Number.isNaN(num)) return;
-            countsRating[num] = (countsRating[num] || 0) + 1;
-            totalRating += 1;
+          if (!total) return;
+          const stats = Object.entries(counts)
+            .map(([key, val]) => ({
+              key,
+              label: studiesLabels[key] || key,
+              count: val,
+              color: studiesColors[key] || "#f95e8a",
+            }))
+            .sort((a, b) => b.count - a.count);
+          statsItems.push({
+            cp: p.label || p.codigo_postal,
+            x: p.x,
+            y: p.y,
+            total,
+            stats,
           });
-          if (totalRating) {
-            const stats = Object.entries(countsRating)
-              .map(([key, val]) => ({
-                key,
-                label: key,
-                count: val,
-                color: ratingColors[(parseInt(key, 10) - 1) % ratingColors.length] || "#f95e8a",
-              }))
-              .sort((a, b) => parseInt(a.key, 10) - parseInt(b.key, 10));
-            statsItems.push({
-              type: "rating",
-              cp: p.label || p.codigo_postal,
-              x: p.x,
-              y: p.y,
-              total: totalRating,
-              stats,
-            });
-          }
-          // Edad
-          const countsAge = {};
-          let totalAge = 0;
-          responses.forEach((r) => {
-            const raw = (r.payload?.edad || "").toString().trim();
-            const num = parseInt(raw, 10);
-            if (Number.isNaN(num)) return;
-            const bucket = ageBuckets.find((b) => num >= b.min && num <= b.max);
-            if (!bucket) return;
-            countsAge[bucket.key] = (countsAge[bucket.key] || 0) + 1;
-            totalAge += 1;
-          });
-          if (totalAge) {
-            const stats = ageBuckets
-              .map((b) => ({
-                key: b.key,
-                label: b.label,
-                count: countsAge[b.key] || 0,
-                color: b.color,
-              }))
-              .filter((s) => s.count > 0);
-            statsItems.push({
-              type: "age",
-              cp: p.label || p.codigo_postal,
-              x: p.x,
-              y: p.y,
-              total: totalAge,
-              stats,
-            });
-          }
         });
         if (statsItems.length === 0 || prevLen === 0) {
           statsIndex = 0;
         } else {
           statsIndex = statsIndex % statsItems.length;
         }
-      }
-
-      function buildCloudItems(list) {
-        const freq = {};
-        list.forEach((p) => {
-          (p.responses || []).forEach((r) => {
-            const raw = r.payload?.asociaciones_alava;
-            if (!raw) return;
-            let items = [];
-            if (Array.isArray(raw)) {
-              items = raw;
-            } else if (typeof raw === "string") {
-              items = raw.split(/[,;]/);
-            }
-            items
-              .map((s) => (typeof s === "string" ? s.trim() : ""))
-              .filter(Boolean)
-              .forEach((s) => {
-                freq[s] = (freq[s] || 0) + 1;
-              });
-          });
-        });
-        const entries = Object.entries(freq).sort((a, b) => b[1] - a[1]);
-        cloudItems = entries;
       }
 
       const preferredFields = [
@@ -680,78 +529,7 @@
         statsIndex = (statsIndex + 1) % statsItems.length;
         const segments = item.stats.slice(0, 6);
         const total = item.total || 1;
-        if (statsDonut) statsDonut.innerHTML = "";
-        if (statsLegend) statsLegend.innerHTML = "";
-        statsBubble.classList.remove("is-rating");
-        if (item.type === "study") {
-          statsTitle.textContent = `${item.cp || "CP"} · Nivel de estudios`;
-          renderDonut(segments, total);
-          renderLegend(segments, total);
-        } else if (item.type === "age") {
-          statsTitle.textContent = `${item.cp || "CP"} · Edad`;
-          renderDonut(segments, total);
-          renderLegend(segments, total);
-        } else if (item.type === "rating") {
-          statsTitle.textContent = `${item.cp || "CP"} · Valoración`;
-          statsBubble.classList.add("is-rating");
-          renderRatingBar(segments, total);
-          if (statsLegend) {
-            statsLegend.innerHTML = "";
-            segments.forEach((seg) => {
-              const pct = Math.round((seg.count / total) * 100);
-              const itemRow = document.createElement("div");
-              itemRow.className = "stats__legend-item";
-              const sw = document.createElement("span");
-              sw.className = "stats__swatch";
-              sw.style.background = seg.color;
-              const txt = document.createElement("span");
-              txt.textContent = `${seg.label}: ${pct}%`;
-              itemRow.appendChild(sw);
-              itemRow.appendChild(txt);
-              statsLegend.appendChild(itemRow);
-            });
-          }
-        } else {
-          statsBubble.style.maxWidth = "420px";
-        }
-        let left = viewportRect.width / 2;
-        let top = viewportRect.height / 2;
-        if (typeof item.x === "number" && typeof item.y === "number" && baseWidth && baseHeight) {
-          left = (item.x / baseWidth) * viewportRect.width;
-          top = (item.y / baseHeight) * viewportRect.height;
-        }
-        const padding = 20;
-        const offsetX = -140; // izquierda del punto
-        const offsetY = -40;  // un poco arriba
-        left = Math.max(padding, Math.min(viewportRect.width - padding, left + offsetX));
-        top = Math.max(padding, Math.min(viewportRect.height - padding, top + offsetY));
-        statsBubble.style.left = `${left}px`;
-        statsBubble.style.top = `${top}px`;
-        statsBubble.classList.add("visible");
-        setTimeout(() => statsBubble.classList.remove("visible"), 6000);
-        playStatsBlip();
-        scheduleStats();
-      }
-
-      function renderCloud() {
-        if (!wordCloud) return;
-        wordCloud.innerHTML = "";
-        if (!cloudItems.length) return;
-        const max = cloudItems[0][1];
-        const min = cloudItems[cloudItems.length - 1][1];
-        const spread = Math.max(1, max - min);
-        cloudItems.forEach(([word, count]) => {
-          const span = document.createElement("span");
-          span.className = "word-cloud__item";
-          const size = 16 + Math.round(((count - min) / spread) * 24); // más grande
-          span.style.fontSize = `${size}px`;
-          span.textContent = word;
-          span.title = `${count} menciones`;
-          wordCloud.appendChild(span);
-        });
-      }
-
-      function renderDonut(segments, total) {
+        statsTitle.textContent = `${item.cp || "CP"} · Nivel de estudios`;
         if (statsDonut) {
           statsDonut.innerHTML = "";
           let offset = 0;
@@ -780,51 +558,39 @@
           inner.setAttribute("fill", "rgba(0,0,0,0.85)");
           statsDonut.appendChild(inner);
         }
-      }
-
-      function renderLegend(segments, total) {
-        if (!statsLegend) return;
-        statsLegend.innerHTML = "";
-        segments.forEach((seg) => {
-          const pct = Math.round((seg.count / total) * 100);
-          const itemRow = document.createElement("div");
-          itemRow.className = "stats__legend-item";
-          const sw = document.createElement("span");
-          sw.className = "stats__swatch";
-          sw.style.background = seg.color;
-          const txt = document.createElement("span");
-          txt.textContent = `${seg.label}: ${pct}%`;
-          itemRow.appendChild(sw);
-          itemRow.appendChild(txt);
-          statsLegend.appendChild(itemRow);
-        });
-      }
-
-      function renderRatingBar(segments, total) {
-        if (statsDonut) statsDonut.innerHTML = "";
-        if (statsLegend) statsLegend.innerHTML = "";
-        if (!statsLegend) return;
-        const row = document.createElement("div");
-        row.className = "stats__bar-row";
-        const bar = document.createElement("div");
-        bar.className = "stats__bar-fill";
-        const stacked = document.createElement("div");
-        stacked.style.display = "flex";
-        stacked.style.width = "100%";
-        stacked.style.height = "8px";
-        segments.forEach((seg) => {
-          const pct = Math.max(2, Math.round((seg.count / total) * 100));
-          const block = document.createElement("span");
-          block.style.display = "block";
-          block.style.height = "8px";
-          block.style.width = `${pct}%`;
-          block.style.background = seg.color;
-          block.title = `${seg.label}: ${seg.count} (${pct}%)`;
-          stacked.appendChild(block);
-        });
-        bar.appendChild(stacked);
-        row.appendChild(bar);
-        statsLegend.appendChild(row);
+        if (statsLegend) {
+          statsLegend.innerHTML = "";
+          segments.forEach((seg) => {
+            const pct = Math.round((seg.count / total) * 100);
+            const itemRow = document.createElement("div");
+            itemRow.className = "stats__legend-item";
+            const sw = document.createElement("span");
+            sw.className = "stats__swatch";
+            sw.style.background = seg.color;
+            const txt = document.createElement("span");
+            txt.textContent = `${seg.label}: ${pct}%`;
+            itemRow.appendChild(sw);
+            itemRow.appendChild(txt);
+            statsLegend.appendChild(itemRow);
+          });
+        }
+        let left = viewportRect.width / 2;
+        let top = viewportRect.height / 2;
+        if (typeof item.x === "number" && typeof item.y === "number" && baseWidth && baseHeight) {
+          left = (item.x / baseWidth) * viewportRect.width;
+          top = (item.y / baseHeight) * viewportRect.height;
+        }
+        const padding = 20;
+        const offsetX = -140; // izquierda del punto
+        const offsetY = -40;  // un poco arriba
+        left = Math.max(padding, Math.min(viewportRect.width - padding, left + offsetX));
+        top = Math.max(padding, Math.min(viewportRect.height - padding, top + offsetY));
+        statsBubble.style.left = `${left}px`;
+        statsBubble.style.top = `${top}px`;
+        statsBubble.classList.add("visible");
+        setTimeout(() => statsBubble.classList.remove("visible"), 6000);
+        playStatsBlip();
+        scheduleStats();
       }
 
       function render() {
@@ -841,11 +607,6 @@
         layer.style.width = `${rect.width}px`;
         layer.style.height = `${rect.height}px`;
         layer.innerHTML = "";
-        if (rayLayer) {
-          rayLayer.innerHTML = "";
-          rayLayer.setAttribute("width", rect.width);
-          rayLayer.setAttribute("height", rect.height);
-        }
         points.forEach((p) => {
           if (p.x == null || p.y == null) return;
           let col = Math.max(0, Math.min(cols - 1, Math.floor((p.x / baseWidth) * cols)));
@@ -913,34 +674,7 @@
           studyEl.style.gridRow = "2";
           wrap.appendChild(studyEl);
           layer.appendChild(wrap);
-          if (p.__recent && rayLayer && !p.external) {
-            const gRect = genderEl.getBoundingClientRect();
-            const vRect = viewport.getBoundingClientRect();
-            const x1 = gRect.left - vRect.left + gRect.width / 2;
-            const y1 = gRect.top - vRect.top + gRect.height / 2;
-            const dir = p.__dir || 0; // 0 up,1 right,2 down,3 left
-            let x2 = x1;
-            let y2 = y1;
-            if (dir === 0) {
-              y1 = Math.max(0, y1 - 6);
-              y2 = 0; // arriba
-            } else if (dir === 1) {
-              x2 = rect.width; // derecha
-            } else if (dir === 2) {
-              y2 = rect.height; // abajo
-            } else if (dir === 3) {
-              x2 = 0; // izquierda
-            }
-            const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
-            line.setAttribute("x1", x1);
-            line.setAttribute("y1", y1);
-            line.setAttribute("x2", x2);
-            line.setAttribute("y2", y2);
-            line.setAttribute("stroke", genderColor);
-            line.setAttribute("stroke-width", "3");
-            line.setAttribute("stroke-linecap", "round");
-            rayLayer.appendChild(line);
-          }
+
         });
       }
 
@@ -954,7 +688,6 @@
           points = (data?.points || []).map((p) => ({ ...p, __recent: false, __dir: 0 }));
           buildTimelineItems(points);
           buildStatsItems(points);
-          buildCloudItems(points);
           // Marca las 3 más recientes según latest_at
           const withTime = points
             .map((p) => ({
@@ -981,7 +714,6 @@
           lastTotal = total;
           lastMaxTs = maxTs;
           render();
-          renderCloud();
           scheduleStats();
         } catch (err) {
           console.error(err);
