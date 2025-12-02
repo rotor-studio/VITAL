@@ -24,7 +24,7 @@
   - `/` survey loads in three languages; conditional questions work.
   - `/admin` lists approved/pending, CSV export includes dynamic fields.
   - `/visual` renders map, toggles background with `M`.
-  - `/grid` shows grid, points, sounds (blip on new points, blip2 on bubbles), timeline rotates comments.
+  - `/grid` muestra cuadrícula, puntos, sonidos (blip en nuevas entradas, blip2 en globos) y nube de palabras en la esquina (usa `asociaciones_alava`). Las líneas de las 3 últimas entradas están temporalmente desactivadas mientras se rehace la lógica.
 - If adding tests, place under `tests/` with pytest-style names (`test_*.py`); prefer fixture-based HTTP calls via `TestClient`.
 
 ## Commit & Pull Request Guidelines

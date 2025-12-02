@@ -19,3 +19,5 @@
 - Se añadió `scripts/run_server.sh` para arrancar con el entorno Conda `server` y lanzar `uvicorn app.main:app --reload`.
 - En `/grid` se añadió un botón de prueba de sonido y reproducción automática del blip al detectar nuevas respuestas (vía aumento de total o `latest_at` más reciente), respetando la habilitación de audio del navegador (Safari requiere interacción previa).
 - Timeline en `/grid`: cada ~10s se muestra un globo cuadrado, desplazado respecto al punto, con textos de campos de comentario (varios campos soportados) elegidos al azar por respuesta. Reproduce `blip2.mp3` al salir el globo y `blip.mp3` al detectarse nuevos puntos. Incluye logs en consola para depuración de items/rotación.
+- Se restauró la nube de palabras en `/grid` (esquina superior izquierda) leyendo `asociaciones_alava`, escalando el tamaño por frecuencia y con tooltip de menciones.
+- Se eliminó la lógica de líneas recientes para rehacerla: actualmente no se trazan líneas; quedamos en un estado limpio para implementar la nueva versión.
