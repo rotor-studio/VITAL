@@ -249,13 +249,35 @@
       line-height: 1.3;
       white-space: pre-wrap;
     }
+    .word-cloud {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      max-width: 30%;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      z-index: 6;
+      pointer-events: none;
+      align-items: flex-start;
+    }
+    .word-cloud__item {
+      padding: 3px 6px;
+      border: 1px solid rgba(255,255,255,0.35);
+      background: rgba(0,0,0,0.65);
+      color: #f8f8f8;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      border-radius: 0;
+    }
   </style>
 </head>
 <body>
-    <div class="viewport">
-      <div class="map-overlay" id="mapOverlay" aria-hidden="true"></div>
-      <div class="grid" aria-hidden="true"></div>
-      <div class="points-layer" id="pointsLayer" aria-hidden="true"></div>
+  <div class="viewport">
+    <div class="map-overlay" id="mapOverlay" aria-hidden="true"></div>
+    <div class="grid" aria-hidden="true"></div>
+    <div class="points-layer" id="pointsLayer" aria-hidden="true"></div>
+    <div class="word-cloud" id="wordCloud"></div>
     <div class="info">
       <div class="pill">
         <strong>120 x 60</strong> visibles • margen oculto de 3 celdas
@@ -270,15 +292,15 @@
         <div class="timeline__text"></div>
       </div>
     </div>
-      <div class="stats-timeline">
-        <div class="stats__bubble" id="statsBubble">
-          <div class="stats__title" id="statsTitle"></div>
-          <div class="stats__bar">
-            <svg class="stats__donut" viewBox="0 0 120 120" id="statsDonut"></svg>
-          </div>
-          <div class="stats__legend" id="statsLegend"></div>
+    <div class="stats-timeline">
+      <div class="stats__bubble" id="statsBubble">
+        <div class="stats__title" id="statsTitle"></div>
+        <div class="stats__bar">
+          <svg class="stats__donut" viewBox="0 0 120 120" id="statsDonut"></svg>
         </div>
+        <div class="stats__legend" id="statsLegend"></div>
       </div>
+    </div>
   </div>
   <audio id="soundClip" src="/data/blip.mp3" preload="auto"></audio>
   <audio id="bubbleClip" src="/data/blip2.mp3" preload="auto"></audio>
@@ -318,6 +340,7 @@
       const layer = document.getElementById("pointsLayer");
       const viewport = document.querySelector(".viewport");
       const grid = document.querySelector(".grid");
+      const wordCloud = document.getElementById("wordCloud");
       const audio = document.getElementById("soundClip");
       const bubbleAudio = document.getElementById("bubbleClip");
       const statsAudio = document.getElementById("statsClip");
@@ -336,6 +359,7 @@
       let statsItems = [];
       let statsIndex = 0;
       let statsTimer = null;
+      let cloudItems = [];
       const bubble = document.getElementById("timelineBubble");
       const bubbleCp = bubble?.querySelector(".timeline__cp");
       const bubbleText = bubble?.querySelector(".timeline__text");
@@ -456,6 +480,47 @@
         } else {
           statsIndex = statsIndex % statsItems.length;
         }
+      }
+
+      function buildCloudItems(list) {
+        const freq = {};
+        list.forEach((p) => {
+          (p.responses || []).forEach((r) => {
+            const raw = r.payload?.asociaciones_alava;
+            if (!raw) return;
+            let items = [];
+            if (Array.isArray(raw)) {
+              items = raw;
+            } else if (typeof raw === "string") {
+              items = raw.split(/[,;]/);
+            }
+            items
+              .map((s) => (typeof s === "string" ? s.trim() : ""))
+              .filter(Boolean)
+              .forEach((s) => {
+                freq[s] = (freq[s] || 0) + 1;
+              });
+          });
+        });
+        cloudItems = Object.entries(freq).sort((a, b) => b[1] - a[1]);
+      }
+
+      function renderCloud() {
+        if (!wordCloud) return;
+        wordCloud.innerHTML = "";
+        if (!cloudItems.length) return;
+        const max = cloudItems[0][1];
+        const min = cloudItems[cloudItems.length - 1][1];
+        const spread = Math.max(1, max - min);
+        cloudItems.forEach(([word, count]) => {
+          const span = document.createElement("span");
+          span.className = "word-cloud__item";
+          const size = 14 + Math.round(((count - min) / spread) * 20);
+          span.style.fontSize = `${size}px`;
+          span.textContent = word;
+          span.title = `${count} menciones`;
+          wordCloud.appendChild(span);
+        });
       }
 
       const preferredFields = [
@@ -688,6 +753,7 @@
           points = (data?.points || []).map((p) => ({ ...p, __recent: false, __dir: 0 }));
           buildTimelineItems(points);
           buildStatsItems(points);
+          buildCloudItems(points);
           // Marca las 3 más recientes según latest_at
           const withTime = points
             .map((p) => ({
@@ -714,6 +780,7 @@
           lastTotal = total;
           lastMaxTs = maxTs;
           render();
+          renderCloud();
           scheduleStats();
         } catch (err) {
           console.error(err);
