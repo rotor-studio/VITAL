@@ -226,6 +226,37 @@
       width: 120px;
       height: 120px;
     }
+    .stats__rating {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .stats__rating-track {
+      position: relative;
+      width: 100%;
+      height: 16px;
+      background: rgba(255,255,255,0.15);
+      border: 1px solid rgba(255,255,255,0.25);
+      overflow: hidden;
+    }
+    .stats__rating-fill {
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      background: linear-gradient(90deg, #f95e8a, #ffc15c);
+    }
+    .stats__rating-labels {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.8rem;
+      color: #ddd;
+    }
+    .stats__rating-value {
+      font-weight: 700;
+      color: #ffd5e4;
+    }
     .stats__legend {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -300,7 +331,7 @@
     <div class="stats-timeline">
       <div class="stats__bubble" id="statsBubble">
         <div class="stats__title" id="statsTitle"></div>
-        <div class="stats__bar">
+        <div class="stats__bar" id="statsBar">
           <svg class="stats__donut" viewBox="0 0 120 120" id="statsDonut"></svg>
         </div>
         <div class="stats__legend" id="statsLegend"></div>
@@ -371,6 +402,7 @@
       const bubbleText = bubble?.querySelector(".timeline__text");
       const statsBubble = document.getElementById("statsBubble");
       const statsTitle = document.getElementById("statsTitle");
+      const statsBar = document.getElementById("statsBar");
       const statsDonut = document.getElementById("statsDonut");
       const statsLegend = document.getElementById("statsLegend");
       const rootStyles = getComputedStyle(document.documentElement);
@@ -385,6 +417,15 @@
         "prefiero_no_decir": "#a0a0a0",
         "no_responde": "#a0a0a0",
       };
+      const ageBuckets = [
+        { key: "10_17", label: "10-17", color: "#6da7ff" },
+        { key: "18_25", label: "18-25", color: "#f8a1d1" },
+        { key: "26_35", label: "26-35", color: "#ffcf5c" },
+        { key: "36_45", label: "36-45", color: "#9b7df0" },
+        { key: "46_55", label: "46-55", color: "#66d399" },
+        { key: "56_65", label: "56-65", color: "#ffa45c" },
+        { key: "66_plus", label: "66+", color: "#ffffff" },
+      ];
       const studiesLabels = {
         "obligatorios": "Obligatorios",
         "bachillerato_fp": "Bachillerato/FP",
@@ -429,9 +470,11 @@
           (p.responses || []).forEach((r) => {
             const payload = r.payload || {};
             const messages = preferredFields
-              .map((key) => {
-                const v = payload[key];
-                return typeof v === "string" && v.trim().length > 2 ? v.trim() : "";
+              .map((entry) => {
+                const v = payload[entry.id];
+                return typeof v === "string" && v.trim().length > 2
+                  ? { label: entry.label, text: v.trim() }
+                  : null;
               })
               .filter(Boolean);
             if (!messages.length) return;
@@ -452,34 +495,93 @@
         }
       }
 
+      function bucketAge(age) {
+        if (age == null || Number.isNaN(age)) return null;
+        if (age <= 17) return "10_17";
+        if (age <= 25) return "18_25";
+        if (age <= 35) return "26_35";
+        if (age <= 45) return "36_45";
+        if (age <= 55) return "46_55";
+        if (age <= 65) return "56_65";
+        return "66_plus";
+      }
+
       function buildStatsItems(list) {
         const prevLen = statsItems.length;
         statsItems = [];
         list.forEach((p) => {
           const counts = {};
           let total = 0;
+          const ratingVals = [];
+          const ageCounts = {};
           (p.responses || []).forEach((r) => {
-            const lvl = (r.payload?.nivel_estudios || "").trim();
-            if (!lvl) return;
-            counts[lvl] = (counts[lvl] || 0) + 1;
-            total += 1;
+            const payload = r.payload || {};
+            const lvl = (payload.nivel_estudios || "").trim();
+            if (lvl) {
+              counts[lvl] = (counts[lvl] || 0) + 1;
+              total += 1;
+            }
+            const rating = Number(payload.valoracion_exposicion);
+            if (!Number.isNaN(rating)) {
+              ratingVals.push(rating);
+            }
+            const age = Number(payload.edad);
+            const bucket = bucketAge(age);
+            if (bucket) {
+              ageCounts[bucket] = (ageCounts[bucket] || 0) + 1;
+            }
           });
-          if (!total) return;
-          const stats = Object.entries(counts)
-            .map(([key, val]) => ({
-              key,
-              label: studiesLabels[key] || key,
-              count: val,
-              color: studiesColors[key] || "#f95e8a",
-            }))
-            .sort((a, b) => b.count - a.count);
-          statsItems.push({
-            cp: p.label || p.codigo_postal,
-            x: p.x,
-            y: p.y,
-            total,
-            stats,
-          });
+          if (total) {
+            const stats = Object.entries(counts)
+              .map(([key, val]) => ({
+                key,
+                label: studiesLabels[key] || key,
+                count: val,
+                color: studiesColors[key] || "#f95e8a",
+              }))
+              .sort((a, b) => b.count - a.count);
+            statsItems.push({
+              type: "studies",
+              cp: p.label || p.codigo_postal,
+              x: p.x,
+              y: p.y,
+              total,
+              stats,
+            });
+          }
+          if (ratingVals.length) {
+            const sum = ratingVals.reduce((acc, v) => acc + v, 0);
+            const avg = sum / ratingVals.length;
+            statsItems.push({
+              type: "rating",
+              cp: p.label || p.codigo_postal,
+              x: p.x,
+              y: p.y,
+              avg,
+              count: ratingVals.length,
+              min: 1,
+              max: 10,
+            });
+          }
+          const ageTotal = Object.values(ageCounts).reduce((acc, v) => acc + v, 0);
+          if (ageTotal) {
+            const segments = ageBuckets
+              .map((b) => ({
+                key: b.key,
+                label: b.label,
+                count: ageCounts[b.key] || 0,
+                color: b.color,
+              }))
+              .filter((s) => s.count > 0);
+            statsItems.push({
+              type: "age",
+              cp: p.label || p.codigo_postal,
+              x: p.x,
+              y: p.y,
+              total: ageTotal,
+              stats: segments.sort((a, b) => b.count - a.count),
+            });
+          }
         });
         if (statsItems.length === 0 || prevLen === 0) {
           statsIndex = 0;
@@ -570,30 +672,32 @@
       }
 
       const preferredFields = [
-        "comentarios",
-        "comentario",
-        "comentarios_generales",
-        "comentario_exposicion",
-        "contenido_interesante_comentario",
-        "personaje_atencion_comentario",
-        "aprendizaje_alava",
-        "algo_en_falta",
-        "asociaciones_alava",
-        "orgullo_alava",
-        "sentirse_alaves",
-        "visitas_expos_comentario",
-        "temas_futuros",
-        "actividades_centro",
-        "conoces_vital_comentario",
+        { id: "comentarios", label: "Comentarios" },
+        { id: "comentario", label: "Comentarios" },
+        { id: "comentarios_generales", label: "Comentarios generales" },
+        { id: "comentario_exposicion", label: "Comentario sobre la exposición" },
+        { id: "contenido_interesante_comentario", label: "¿Por qué fue interesante?" },
+        { id: "personaje_atencion_comentario", label: "Sobre el personaje elegido" },
+        { id: "aprendizaje_alava", label: "¿Qué aprendiste sobre Álava?" },
+        { id: "algo_en_falta", label: "¿Qué faltó?" },
+        { id: "asociaciones_alava", label: "Asociaciones con Álava" },
+        { id: "orgullo_alava", label: "Orgullo de Álava" },
+        { id: "sentirse_alaves", label: "¿Te sientes alavés?" },
+        { id: "visitas_expos_comentario", label: "Sobre la exposición" },
+        { id: "temas_futuros", label: "Temas futuros" },
+        { id: "actividades_centro", label: "Actividades centro" },
+        { id: "conoces_vital_comentario", label: "Conoces Vital (comentario)" },
       ];
 
       function pickMessage(payload) {
-        if (!payload) return "";
-        for (const key of preferredFields) {
-          const v = payload[key];
-          if (typeof v === "string" && v.trim().length > 2) return v.trim();
+        if (!payload) return null;
+        for (const entry of preferredFields) {
+          const v = payload[entry.id];
+          if (typeof v === "string" && v.trim().length > 2) {
+            return { label: entry.label, text: v.trim() };
+          }
         }
-        return "";
+        return null;
       }
 
       function showNextTimeline() {
@@ -603,11 +707,15 @@
         }
         const item = timelineItems[timelineIndex % timelineItems.length];
         timelineIndex = (timelineIndex + 1) % timelineItems.length;
-        bubbleCp.textContent = item.cp || "CP";
         const msgs = item.messages || [];
-        const msg = msgs.length ? msgs[Math.floor(Math.random() * msgs.length)] : "";
-        bubbleText.textContent = msg;
-        console.log("[timeline] mostrando", item.cp, "msg:", msg?.slice(0,80));
+        const msg = msgs.length ? msgs[Math.floor(Math.random() * msgs.length)] : null;
+        if (!msg) return;
+        const cpLabel = item.cp || "CP";
+        const questionLabel = msg.label ? ` · ${msg.label}` : "";
+        const msgText = msg.text || "";
+        bubbleCp.textContent = `${cpLabel}${questionLabel}`;
+        bubbleText.textContent = msgText;
+        console.log("[timeline] mostrando", item.cp, "msg:", msgText.slice(0,80));
         let left = viewportRect.width / 2;
         let top = viewportRect.height / 2;
         if (typeof item.x === "number" && typeof item.y === "number" && baseWidth && baseHeight) {
@@ -638,52 +746,86 @@
         }
         const item = statsItems[statsIndex % statsItems.length];
         statsIndex = (statsIndex + 1) % statsItems.length;
-        const segments = item.stats.slice(0, 6);
+        const segments = item.stats ? item.stats.slice(0, 6) : [];
         const total = item.total || 1;
-        statsTitle.textContent = `${item.cp || "CP"} · Nivel de estudios`;
-        if (statsDonut) {
-          statsDonut.innerHTML = "";
-          let offset = 0;
-          segments.forEach((seg) => {
-            const pct = (seg.count / total) * 100;
-            const circumference = 2 * Math.PI * 45;
-            const dash = (pct / 100) * circumference;
-            const gap = circumference - dash;
-            const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-            circle.setAttribute("cx", "60");
-            circle.setAttribute("cy", "60");
-            circle.setAttribute("r", "45");
-            circle.setAttribute("fill", "none");
-            circle.setAttribute("stroke", seg.color);
-            circle.setAttribute("stroke-width", "12");
-            circle.setAttribute("stroke-dasharray", `${dash} ${gap}`);
-            circle.setAttribute("stroke-dashoffset", `${-offset}`);
-            circle.setAttribute("transform", "rotate(-90 60 60)");
-            statsDonut.appendChild(circle);
-            offset += dash;
-          });
-          const inner = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-          inner.setAttribute("cx", "60");
-          inner.setAttribute("cy", "60");
-          inner.setAttribute("r", "25");
-          inner.setAttribute("fill", "rgba(0,0,0,0.85)");
-          statsDonut.appendChild(inner);
-        }
-        if (statsLegend) {
-          statsLegend.innerHTML = "";
-          segments.forEach((seg) => {
-            const pct = Math.round((seg.count / total) * 100);
-            const itemRow = document.createElement("div");
-            itemRow.className = "stats__legend-item";
-            const sw = document.createElement("span");
-            sw.className = "stats__swatch";
-            sw.style.background = seg.color;
-            const txt = document.createElement("span");
-            txt.textContent = `${seg.label}: ${pct}%`;
-            itemRow.appendChild(sw);
-            itemRow.appendChild(txt);
-            statsLegend.appendChild(itemRow);
-          });
+        if (statsLegend) statsLegend.innerHTML = "";
+        if (statsBar) statsBar.innerHTML = "";
+
+        if (item.type === "rating") {
+          statsTitle.textContent = `${item.cp || "CP"} · Valoración exposición`;
+          const track = document.createElement("div");
+          track.className = "stats__rating-track";
+          const fill = document.createElement("div");
+          fill.className = "stats__rating-fill";
+          const pct = Math.max(0, Math.min(100, ((item.avg - item.min) / (item.max - item.min)) * 100));
+          fill.style.width = `${pct}%`;
+          track.appendChild(fill);
+          const labels = document.createElement("div");
+          labels.className = "stats__rating-labels";
+          const left = document.createElement("span");
+          left.textContent = `${item.min}`;
+          const mid = document.createElement("span");
+          mid.innerHTML = `<span class="stats__rating-value">${item.avg.toFixed(1)}</span> (${item.count} respuestas)`;
+          const right = document.createElement("span");
+          right.textContent = `${item.max}`;
+          labels.appendChild(left);
+          labels.appendChild(mid);
+          labels.appendChild(right);
+          const wrap = document.createElement("div");
+          wrap.className = "stats__rating";
+          wrap.appendChild(track);
+          wrap.appendChild(labels);
+          statsBar.appendChild(wrap);
+        } else {
+          const titleLabel = item.type === "age" ? "Edades" : "Nivel de estudios";
+          statsTitle.textContent = `${item.cp || "CP"} · ${titleLabel}`;
+          const sourceSegments = item.type === "age" ? item.stats : segments;
+          if (statsBar) {
+            const donut = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+            donut.setAttribute("viewBox", "0 0 120 120");
+            donut.classList.add("stats__donut");
+            let offset = 0;
+            sourceSegments.forEach((seg) => {
+              const pct = (seg.count / total) * 100;
+              const circumference = 2 * Math.PI * 45;
+              const dash = (pct / 100) * circumference;
+              const gap = circumference - dash;
+              const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+              circle.setAttribute("cx", "60");
+              circle.setAttribute("cy", "60");
+              circle.setAttribute("r", "45");
+              circle.setAttribute("fill", "none");
+              circle.setAttribute("stroke", seg.color);
+              circle.setAttribute("stroke-width", "12");
+              circle.setAttribute("stroke-dasharray", `${dash} ${gap}`);
+              circle.setAttribute("stroke-dashoffset", `${-offset}`);
+              circle.setAttribute("transform", "rotate(-90 60 60)");
+              donut.appendChild(circle);
+              offset += dash;
+            });
+            const inner = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+            inner.setAttribute("cx", "60");
+            inner.setAttribute("cy", "60");
+            inner.setAttribute("r", "25");
+            inner.setAttribute("fill", "rgba(0,0,0,0.85)");
+            donut.appendChild(inner);
+            statsBar.appendChild(donut);
+          }
+          if (statsLegend) {
+            sourceSegments.forEach((seg) => {
+              const pct = Math.round((seg.count / total) * 100);
+              const itemRow = document.createElement("div");
+              itemRow.className = "stats__legend-item";
+              const sw = document.createElement("span");
+              sw.className = "stats__swatch";
+              sw.style.background = seg.color;
+              const txt = document.createElement("span");
+              txt.textContent = `${seg.label}: ${pct}%`;
+              itemRow.appendChild(sw);
+              itemRow.appendChild(txt);
+              statsLegend.appendChild(itemRow);
+            });
+          }
         }
         let left = viewportRect.width / 2;
         let top = viewportRect.height / 2;
