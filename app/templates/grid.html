@@ -476,6 +476,7 @@
   <audio id="bubbleClip" src="/data/blip2.mp3" preload="auto"></audio>
   <audio id="statsClip" src="/data/blip3.mp3" preload="auto"></audio>
   <audio id="characterClip" src="/data/blip4.mp3" preload="auto"></audio>
+  <audio id="zoomClip" src="/data/blip5.mp3" preload="auto"></audio>
   <script>
     (() => {
       const overlay = document.getElementById("mapOverlay");
@@ -518,6 +519,7 @@
       const bubbleAudio = document.getElementById("bubbleClip");
       const statsAudio = document.getElementById("statsClip");
       const characterAudio = document.getElementById("characterClip");
+      const zoomAudio = document.getElementById("zoomClip");
       const soundBtn = document.getElementById("soundCheck");
       const zoomBtn = document.getElementById("zoomTest");
       const zoomBubbleEl = document.getElementById("zoomBubble");
@@ -621,6 +623,10 @@
       const playCharacterBlip = () => {
         if (!audioReady) return;
         playAudio(characterAudio);
+      };
+      const playZoomBlip = () => {
+        if (!audioReady) return;
+        playAudio(zoomAudio);
       };
 
       function buildTimelineItems(list) {
@@ -903,6 +909,7 @@
             zoomBubbleEl.classList.remove("visible");
           }, 2600);
         }
+        playZoomBlip();
         zoomedMarker = null;
         if (zoomTimer) clearTimeout(zoomTimer);
         zoomTimer = setTimeout(() => {
