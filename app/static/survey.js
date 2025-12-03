@@ -73,6 +73,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let surveyId = 1;
   const stepIndexById = new Map();
   const prevSteps = [];
+  const questionLabels = {};
 
   function setProgress(i) {
     if (!TOTAL_STEPS) {
@@ -165,12 +166,37 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
     answers = { __lang: lang };
+    Object.keys(questionLabels).forEach(k => delete questionLabels[k]);
     prevSteps.length = 0;
     stepIndexById.clear();
     activeSteps.forEach((step, idx) => stepIndexById.set(step.id, idx));
     stepIndex = 0;
     statusEl.textContent = '';
     renderStep(activeSteps[0]);
+  }
+
+  function fillOptionLabels() {
+    const mapLabel = (opts, val) => {
+      const opt = (opts || []).find(o => `${o.value}` === `${val}`);
+      return opt ? opt.label : val;
+    };
+    activeSteps.forEach(step => {
+      const { id, type, options = [], fields = [] } = step;
+      if ((type === 'chips' || type === 'rating' || type === 'select') && answers[id] != null && answers[`${id}_labels`] == null) {
+        if (Array.isArray(answers[id])) {
+          answers[`${id}_labels`] = answers[id].map(v => mapLabel(options, v));
+        } else {
+          answers[`${id}_labels`] = mapLabel(options, answers[id]);
+        }
+      }
+      if (type === 'form') {
+        fields.forEach(f => {
+          if (f.type === 'select' && answers[f.id] != null && answers[`${f.id}_labels`] == null) {
+            answers[`${f.id}_labels`] = mapLabel(f.options || [], answers[f.id]);
+          }
+        });
+      }
+    });
   }
 
   function renderStep(step) {
@@ -192,6 +218,12 @@ document.addEventListener('DOMContentLoaded', () => {
       section_title: sectionTitle = null,
       jump_if: jumpIf = null
     } = step;
+    if (label) {
+      questionLabels[id] = label;
+    }
+    if (commentField && commentField.label) {
+      questionLabels[commentField.id] = commentField.label;
+    }
 
     const renderExtraField = field => {
       if (!field) return '';
@@ -334,6 +366,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (type === 'chips' || type === 'rating') {
       const container = stepHost.querySelector('.choices');
+      const optionLabel = val => {
+        const opt = options.find(o => `${o.value}` === `${val}`);
+        return opt ? opt.label : val;
+      };
       if (type === 'chips' && multi) {
         const current = Array.isArray(answers[id]) ? new Set(answers[id]) : new Set();
         if (current.size) {
@@ -352,7 +388,9 @@ document.addEventListener('DOMContentLoaded', () => {
             chip.setAttribute('aria-pressed', 'true');
             current.add(val);
           }
-          answers[id] = Array.from(current);
+          const vals = Array.from(current);
+          answers[id] = vals;
+          answers[`${id}_labels`] = vals.map(optionLabel);
         };
         container.addEventListener('click', e => toggleChip(e.target.closest('.chip')));
       } else {
@@ -367,6 +405,7 @@ document.addEventListener('DOMContentLoaded', () => {
           container.querySelectorAll('.chip').forEach(x => x.setAttribute('aria-pressed', 'false'));
           chip.setAttribute('aria-pressed', 'true');
           answers[id] = chip.dataset.value;
+          answers[`${id}_labels`] = optionLabel(chip.dataset.value);
         };
         container.addEventListener('click', e => selectChip(e.target.closest('.chip')));
         container.addEventListener('pointerup', e => selectChip(e.target.closest('.chip')));
@@ -383,7 +422,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (type === 'select') {
       const sel = document.getElementById(id);
-      sel.addEventListener('change', () => { answers[id] = sel.value; });
+      sel.addEventListener('change', () => {
+        answers[id] = sel.value;
+        const opt = Array.from(sel.options).find(o => o.value === sel.value);
+        if (opt) answers[`${id}_labels`] = opt.textContent;
+      });
       if (answers[id]) sel.value = answers[id];
     }
 
@@ -391,7 +434,11 @@ document.addEventListener('DOMContentLoaded', () => {
       fields.forEach(field => {
         if (field.type === 'select') {
           const sel = document.getElementById(field.id);
-          sel.addEventListener('change', () => { answers[field.id] = sel.value; });
+          sel.addEventListener('change', () => {
+            answers[field.id] = sel.value;
+            const opt = Array.from(sel.options).find(o => o.value === sel.value);
+            if (opt) answers[`${field.id}_labels`] = opt.textContent;
+          });
           if (answers[field.id]) sel.value = answers[field.id];
         } else {
           const input = document.getElementById(field.id);
@@ -443,7 +490,12 @@ document.addEventListener('DOMContentLoaded', () => {
       if (stepIndex === TOTAL_STEPS - 1) {
         btnNext.disabled = true;
         statusEl.textContent = locale.statusSending;
+        fillOptionLabels();
+        if (Array.isArray(answers.asociaciones_alava_labels) && answers.asociaciones_alava_labels.length) {
+          answers.asociaciones_alava = answers.asociaciones_alava_labels.slice();
+        }
         answers.__lang = currentLang;
+        answers.__labels = { ...questionLabels };
         try {
           await postResponse(surveyId, answers);
           statusEl.textContent = '';

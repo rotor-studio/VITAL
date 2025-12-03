@@ -5,6 +5,7 @@ from pathlib import Path
 from functools import lru_cache
 import csv
 from datetime import datetime
+import json
 
 router = APIRouter(prefix="/api/visual", tags=["visual"])
 
@@ -52,6 +53,25 @@ COMMENT_FIELDS = {
     "actividades_centro",
     "conoces_vital_comentario",
 }
+
+QUESTIONS_PATH = Path(__file__).resolve().parents[2] / "app" / "static" / "questions.json"
+
+
+@lru_cache(maxsize=1)
+def _asociaciones_labels_by_lang():
+    mapping = {}
+    try:
+        data = json.loads(QUESTIONS_PATH.read_text(encoding="utf-8"))
+    except Exception:
+        return mapping
+    steps_by_lang = data.get("steps") or {}
+    for lang, steps in steps_by_lang.items():
+        for step in steps:
+            if step.get("id") != "asociaciones_alava":
+                continue
+            opts = step.get("options") or []
+            mapping[lang] = {opt.get("value"): opt.get("label") for opt in opts if opt.get("value")}
+    return mapping
 
 
 @lru_cache(maxsize=1)
@@ -211,6 +231,7 @@ def postal_points(status: str = "approved"):
             rows = session.exec(select(Response).where(Response.status.in_(["approved", "pending"]))).all()
         else:
             rows = session.exec(select(Response).where(Response.status == status)).all()
+    labels_by_lang = _asociaciones_labels_by_lang()
     buckets = {}
     character_counts = {}
     for row in rows:
@@ -218,6 +239,14 @@ def postal_points(status: str = "approved"):
         payload = payload_raw
         if row.status == "pending":
             payload = {k: v for k, v in payload_raw.items() if k not in COMMENT_FIELDS}
+        if not payload.get("asociaciones_alava_labels") and payload_raw.get("asociaciones_alava"):
+            lang = payload_raw.get("__lang")
+            labels_map = labels_by_lang.get(lang) or {}
+            raw_vals = payload_raw.get("asociaciones_alava")
+            vals_list = raw_vals if isinstance(raw_vals, list) else [raw_vals]
+            payload["asociaciones_alava_labels"] = [
+                labels_map.get(v, v) for v in vals_list if isinstance(v, str)
+            ]
         character = (payload.get("personaje_importante") or "").strip()
         if character:
             character_counts[character] = character_counts.get(character, 0) + 1

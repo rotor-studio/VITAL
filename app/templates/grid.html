@@ -635,17 +635,18 @@
         list.forEach((p) => {
           (p.responses || []).forEach((r) => {
             const payload = r.payload || {};
+            const labelsMap = payload.__labels || {};
             const messages = preferredFields
               .map((entry) => {
                 const v = payload[entry.id];
                 return typeof v === "string" && v.trim().length > 2
-                  ? { label: entry.label, text: v.trim() }
+                  ? { label: labelsMap[entry.id] || entry.label, text: v.trim() }
                   : null;
               })
               .filter(Boolean);
             if (!messages.length) return;
             let words = [];
-            const rawWords = payload.asociaciones_alava;
+            const rawWords = payload.asociaciones_alava_labels || payload.asociaciones_alava;
             if (Array.isArray(rawWords)) {
               words = rawWords;
             } else if (typeof rawWords === "string") {
@@ -776,7 +777,7 @@
         const freq = {};
         list.forEach((p) => {
           (p.responses || []).forEach((r) => {
-            const raw = r.payload?.asociaciones_alava;
+            const raw = r.payload?.asociaciones_alava_labels || r.payload?.asociaciones_alava;
             if (!raw) return;
             let items = [];
             if (Array.isArray(raw)) {
@@ -993,10 +994,12 @@
 
       function pickMessage(payload) {
         if (!payload) return null;
+        const labelsMap = payload.__labels || {};
         for (const entry of preferredFields) {
           const v = payload[entry.id];
           if (typeof v === "string" && v.trim().length > 2) {
-            return { label: entry.label, text: v.trim() };
+            const lbl = labelsMap[entry.id] || entry.label;
+            return { label: lbl, text: v.trim() };
           }
         }
         return null;
