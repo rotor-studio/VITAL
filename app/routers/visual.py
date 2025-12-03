@@ -239,14 +239,16 @@ def postal_points(status: str = "approved"):
         payload = payload_raw
         if row.status == "pending":
             payload = {k: v for k, v in payload_raw.items() if k not in COMMENT_FIELDS}
-        if not payload.get("asociaciones_alava_labels") and payload_raw.get("asociaciones_alava"):
-            lang = payload_raw.get("__lang")
-            labels_map = labels_by_lang.get(lang) or {}
-            raw_vals = payload_raw.get("asociaciones_alava")
-            vals_list = raw_vals if isinstance(raw_vals, list) else [raw_vals]
-            payload["asociaciones_alava_labels"] = [
-                labels_map.get(v, v) for v in vals_list if isinstance(v, str)
-            ]
+        if not payload.get("asociaciones_alava_labels"):
+            raw_vals = payload_raw.get("asociaciones_alava_values") or payload_raw.get("asociaciones_alava")
+            if raw_vals:
+                lang = payload_raw.get("__lang")
+                labels_map = labels_by_lang.get(lang) or {}
+                vals_list = raw_vals if isinstance(raw_vals, list) else [raw_vals]
+                payload["asociaciones_alava_labels"] = [
+                    labels_map.get(v, v) for v in vals_list if isinstance(v, str)
+                ]
+                payload["asociaciones_alava_values"] = vals_list
         character = (payload.get("personaje_importante") or "").strip()
         if character:
             character_counts[character] = character_counts.get(character, 0) + 1

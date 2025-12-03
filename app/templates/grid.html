@@ -545,6 +545,8 @@
       const wordNodes = new Map();
       let activeWord = null;
       let activeWordTimer = null;
+      let cloudLangIndex = 0;
+      let cloudLangTimer = null;
       let characters = [];
       let characterTotal = 0;
       let characterIndex = 0;
@@ -566,6 +568,7 @@
       const rootStyles = getComputedStyle(document.documentElement);
       const cols = parseInt(rootStyles.getPropertyValue("--cols"), 10) || 120;
       const rows = parseInt(rootStyles.getPropertyValue("--rows"), 10) || 60;
+      const cloudLangs = ["es", "eu", "en"];
       const genderColors = {
         "man": "#6da7ff",
         "woman": "#f8a1d1",
@@ -627,6 +630,21 @@
       const playZoomBlip = () => {
         if (!audioReady) return;
         playAudio(zoomAudio);
+      };
+      const asociacionesLabels = {
+        "innovacion": { es: "Innovación", eu: "Berrikuntza", en: "Innovation" },
+        "educacion": { es: "Educación", eu: "Hezkuntza", en: "Education" },
+        "tradicion": { es: "Tradición", eu: "Tradizioa", en: "Tradition" },
+        "integracion": { es: "Integración", eu: "Integrazioa", en: "Integration" },
+        "modernidad": { es: "Modernidad", eu: "Modernitatea", en: "Modernity" },
+        "bienestar": { es: "Bienestar", eu: "Ongizatea", en: "Wellbeing" },
+        "calidad_vida": { es: "Calidad de vida", eu: "Bizitza-kalitatea", en: "Quality of life" },
+        "diversidad": { es: "Diversidad", eu: "Aniztasuna", en: "Diversity" },
+        "talento": { es: "Talento", eu: "Talentua", en: "Talent" },
+        "sostenibilidad": { es: "Sostenibilidad", eu: "Iraunkortasuna", en: "Sustainability" },
+        "creatividad": { es: "Creatividad", eu: "Sormena", en: "Creativity" },
+        "vanguardia": { es: "Vanguardia", eu: "Aitzindaritza", en: "Avant-garde" },
+        "tecnologia": { es: "Tecnología", eu: "Teknologia", en: "Technology" },
       };
 
       function buildTimelineItems(list) {
@@ -777,23 +795,26 @@
         const freq = {};
         list.forEach((p) => {
           (p.responses || []).forEach((r) => {
-            const raw = r.payload?.asociaciones_alava_labels || r.payload?.asociaciones_alava;
-            if (!raw) return;
-            let items = [];
-            if (Array.isArray(raw)) {
-              items = raw;
-            } else if (typeof raw === "string") {
-              items = raw.split(/[,;]/);
+            const rawVals = r.payload?.asociaciones_alava_values || r.payload?.asociaciones_alava;
+            const rawLabels = r.payload?.asociaciones_alava_labels;
+            let values = [];
+            if (Array.isArray(rawVals)) values = rawVals;
+            else if (typeof rawVals === "string") values = rawVals.split(/[,;]/);
+            if (!values.length && rawLabels) {
+              if (Array.isArray(rawLabels)) values = rawLabels;
+              else if (typeof rawLabels === "string") values = rawLabels.split(/[,;]/);
             }
-            items
+            values
               .map((s) => (typeof s === "string" ? s.trim() : ""))
               .filter(Boolean)
-              .forEach((s) => {
-                freq[s] = (freq[s] || 0) + 1;
+              .forEach((val) => {
+                const key = val.toLowerCase();
+                freq[key] = (freq[key] || { count: 0, value: key });
+                freq[key].count += 1;
               });
           });
         });
-        cloudItems = Object.entries(freq).sort((a, b) => b[1] - a[1]);
+        cloudItems = Object.values(freq).sort((a, b) => b.count - a.count).slice(0, 12);
       }
 
       function renderCloud() {
@@ -801,31 +822,47 @@
         wordCloud.innerHTML = "";
         wordNodes.clear();
         if (!cloudItems.length) return;
-        const max = cloudItems[0][1];
-        const min = cloudItems[cloudItems.length - 1][1];
+        cloudLangIndex = 0;
+        const max = cloudItems[0].count;
+        const min = cloudItems[cloudItems.length - 1].count;
         const spread = Math.max(1, max - min);
-        cloudItems.forEach(([word, count]) => {
+        cloudItems.forEach((entry) => {
+          const word = entry.value;
+          const count = entry.count;
+          const labels = asociacionesLabels[word] || { es: word, eu: word, en: word };
           const span = document.createElement("span");
           span.className = "word-cloud__item";
           const size = 14 + Math.round(((count - min) / spread) * 20);
           span.style.fontSize = `${size}px`;
-          span.textContent = word;
+          span.textContent = labels[cloudLangs[cloudLangIndex]] || word;
           span.title = `${count} menciones`;
           const dx = (Math.random() * 6 + 3) * (Math.random() > 0.5 ? 1 : -1);
           const dy = (Math.random() * 5 + 2) * (Math.random() > 0.5 ? 1 : -1);
           const delay = (Math.random() * 5).toFixed(2);
           const duration = (10 + Math.random() * 6).toFixed(2);
-          const norm = word.toString().toLowerCase();
-          span.dataset.word = norm;
           span.style.setProperty("--wc-dx", `${dx}px`);
           span.style.setProperty("--wc-dy", `${dy}px`);
           span.style.animationDelay = `${delay}s`;
           span.style.setProperty("--wc-duration", `${duration}s`);
+          const norm = word.toString().toLowerCase();
           if (activeWord && activeWord === norm) {
             span.classList.add("is-active");
           }
-          wordNodes.set(norm, span);
+          wordNodes.set(norm, { el: span, labels, tick: Math.random() * 1.2 + 0.6 });
           wordCloud.appendChild(span);
+        });
+        if (cloudLangTimer) clearInterval(cloudLangTimer);
+        const rotateWord = (key, data) => {
+          const { el, labels } = data;
+          const langIdx = Math.floor(Math.random() * cloudLangs.length);
+          const txt = labels[cloudLangs[langIdx]] || labels.es || labels.eu || labels.en;
+          el.textContent = txt;
+          const delay = 3000 + Math.random() * 3000;
+          setTimeout(() => rotateWord(key, data), delay);
+        };
+        wordNodes.forEach((data, key) => {
+          const delay = 3000 + Math.random() * 3000;
+          setTimeout(() => rotateWord(key, data), delay);
         });
       }
 

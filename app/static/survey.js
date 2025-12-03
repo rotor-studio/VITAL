@@ -490,7 +490,11 @@ document.addEventListener('DOMContentLoaded', () => {
       if (stepIndex === TOTAL_STEPS - 1) {
         btnNext.disabled = true;
         statusEl.textContent = locale.statusSending;
+        const rawAssoc = Array.isArray(answers.asociaciones_alava) ? answers.asociaciones_alava.slice() : null;
         fillOptionLabels();
+        if (rawAssoc) {
+          answers.asociaciones_alava_values = rawAssoc;
+        }
         if (Array.isArray(answers.asociaciones_alava_labels) && answers.asociaciones_alava_labels.length) {
           answers.asociaciones_alava = answers.asociaciones_alava_labels.slice();
         }
