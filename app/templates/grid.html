@@ -870,14 +870,14 @@
         if (activeWordTimer) clearTimeout(activeWordTimer);
         if (activeWord && wordNodes.has(activeWord)) {
           const prev = wordNodes.get(activeWord);
-          prev?.classList.remove("is-active");
+          prev?.el?.classList.remove("is-active");
         }
         activeWord = word;
         const el = word ? wordNodes.get(word) : null;
-        if (el) {
-          el.classList.add("is-active");
+        if (el?.el) {
+          el.el.classList.add("is-active");
           activeWordTimer = setTimeout(() => {
-            el.classList.remove("is-active");
+            el.el.classList.remove("is-active");
             activeWord = null;
           }, 6000);
         }
@@ -1378,6 +1378,7 @@
           render();
           renderCloud();
           scheduleStats();
+          showNextTimeline();
         } catch (err) {
           console.error(err);
         }
