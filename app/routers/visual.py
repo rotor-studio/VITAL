@@ -35,6 +35,24 @@ CHARACTER_CARDS = {
     "naipera": {"label": "Naipera", "image": None},
 }
 
+COMMENT_FIELDS = {
+    "comentarios",
+    "comentario",
+    "comentarios_generales",
+    "comentario_exposicion",
+    "contenido_interesante_comentario",
+    "personaje_atencion_comentario",
+    "aprendizaje_alava",
+    "algo_en_falta",
+    "asociaciones_alava",
+    "orgullo_alava",
+    "sentirse_alaves",
+    "visitas_expos_comentario",
+    "temas_futuros",
+    "actividades_centro",
+    "conoces_vital_comentario",
+}
+
 
 @lru_cache(maxsize=1)
 def _load_zip_mapping():
@@ -181,16 +199,25 @@ def _fallback_external_position(cp: str):
 
 @router.get("/points")
 def postal_points(status: str = "approved"):
-    """Return aggregated responses with pixel positions for each postal code."""
+    """Return aggregated responses with pixel positions for each postal code.
+
+    - status="approved" (por defecto): solo aprobadas.
+    - status="pending": solo pendientes.
+    - status="all": aprobadas + pendientes (comentarios de pendientes se ocultan).
+    """
     mapping = _load_zip_mapping()
     with Session(SQLModel.engine) as session:
-        rows = session.exec(
-            select(Response).where(Response.status == status)
-        ).all()
+        if status == "all":
+            rows = session.exec(select(Response).where(Response.status.in_(["approved", "pending"]))).all()
+        else:
+            rows = session.exec(select(Response).where(Response.status == status)).all()
     buckets = {}
     character_counts = {}
     for row in rows:
-        payload = row.payload_json or {}
+        payload_raw = row.payload_json or {}
+        payload = payload_raw
+        if row.status == "pending":
+            payload = {k: v for k, v in payload_raw.items() if k not in COMMENT_FIELDS}
         character = (payload.get("personaje_importante") or "").strip()
         if character:
             character_counts[character] = character_counts.get(character, 0) + 1
@@ -234,6 +261,7 @@ def postal_points(status: str = "approved"):
             {
                 "id": row.id,
                 "created_at": row.created_at.isoformat(timespec="seconds"),
+                "status": row.status,
                 "payload": payload,
             }
         )

@@ -1281,7 +1281,7 @@
 
       async function loadPoints() {
         try {
-          const res = await fetch("/api/visual/points");
+          const res = await fetch("/api/visual/points?status=all");
           if (!res.ok) throw new Error("Failed to load points");
           const data = await res.json();
           baseWidth = data?.base_size?.width || baseWidth;
