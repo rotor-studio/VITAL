@@ -286,8 +286,9 @@
     }
     .word-cloud {
       position: absolute;
-      top: 20px;
-      left: 20px;
+      top: 60px;
+      left: 40px;
+      transform: translateX(0);
       max-width: 30%;
       display: flex;
       flex-wrap: wrap;
@@ -304,6 +305,15 @@
       font-weight: 700;
       letter-spacing: 0.02em;
       border-radius: 0;
+      transform: translate3d(0,0,0);
+      animation: wordFloat var(--wc-duration, 11s) ease-in-out infinite alternate;
+    }
+    @keyframes wordFloat {
+      0% { transform: translate3d(var(--wc-dx, -3px), var(--wc-dy, -2px), 0); }
+      25% { transform: translate3d(calc(var(--wc-dx, -3px) * 0.3), calc(var(--wc-dy, -2px) * 0.4), 0); }
+      50% { transform: translate3d(calc(var(--wc-dx, -3px) * -0.25), calc(var(--wc-dy, -2px) * 0.2), 0); }
+      75% { transform: translate3d(calc(var(--wc-dx, -3px) * 0.15), calc(var(--wc-dy, -2px) * -0.25), 0); }
+      100% { transform: translate3d(calc(var(--wc-dx, -3px) * -1), calc(var(--wc-dy, -2px) * -1), 0); }
     }
   </style>
 </head>
@@ -316,9 +326,6 @@
     <div class="word-cloud" id="wordCloud"></div>
     <div class="info">
       <div class="pill">
-        <strong>120 x 60</strong> visibles • margen oculto de 3 celdas
-        <kbd>M</kbd> mapa
-        <kbd>R</kbd> recargar puntos
         <button id="soundCheck" type="button">🔊 Probar sonido</button>
       </div>
     </div>
@@ -627,6 +634,14 @@
           span.style.fontSize = `${size}px`;
           span.textContent = word;
           span.title = `${count} menciones`;
+          const dx = (Math.random() * 6 + 3) * (Math.random() > 0.5 ? 1 : -1);
+          const dy = (Math.random() * 5 + 2) * (Math.random() > 0.5 ? 1 : -1);
+          const delay = (Math.random() * 5).toFixed(2);
+          const duration = (10 + Math.random() * 6).toFixed(2);
+          span.style.setProperty("--wc-dx", `${dx}px`);
+          span.style.setProperty("--wc-dy", `${dy}px`);
+          span.style.animationDelay = `${delay}s`;
+          span.style.setProperty("--wc-duration", `${duration}s`);
           wordCloud.appendChild(span);
         });
       }
