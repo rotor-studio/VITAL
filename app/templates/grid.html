@@ -73,6 +73,12 @@
       width: 100%;
       height: 100%;
     }
+    .rays-layer {
+      position: absolute;
+      inset: 0;
+      z-index: 3;
+      pointer-events: none;
+    }
     .marker-pair {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -143,9 +149,7 @@
     }
     .ray {
       position: absolute;
-      background: transparent;
       pointer-events: none;
-      z-index: 4;
     }
     .timeline {
       position: absolute;
@@ -276,6 +280,7 @@
   <div class="viewport">
     <div class="map-overlay" id="mapOverlay" aria-hidden="true"></div>
     <div class="grid" aria-hidden="true"></div>
+    <div class="rays-layer" id="raysLayer" aria-hidden="true"></div>
     <div class="points-layer" id="pointsLayer" aria-hidden="true"></div>
     <div class="word-cloud" id="wordCloud"></div>
     <div class="info">
@@ -338,6 +343,7 @@
     })();
     (() => {
       const layer = document.getElementById("pointsLayer");
+      const raysLayer = document.getElementById("raysLayer");
       const viewport = document.querySelector(".viewport");
       const grid = document.querySelector(".grid");
       const wordCloud = document.getElementById("wordCloud");
@@ -523,6 +529,46 @@
         });
       }
 
+      function drawRays(lines) {
+        if (!raysLayer || !viewportRect) return;
+        raysLayer.innerHTML = "";
+        if (!Array.isArray(lines) || !lines.length) return;
+        const thickness = 3;
+        const width = viewportRect.width;
+        const height = viewportRect.height;
+        lines.forEach((line) => {
+          const dir = typeof line.dir === "number" ? line.dir : 0;
+          const color = line.color || "#f95e8a";
+          const startX = Math.max(0, Math.min(width, line.x || 0));
+          const startY = Math.max(0, Math.min(height, line.y || 0));
+          const el = document.createElement("div");
+          el.className = "ray";
+          el.style.background = color;
+          if (dir === 0) {
+            el.style.left = `${startX - thickness / 2}px`;
+            el.style.top = "0px";
+            el.style.width = `${thickness}px`;
+            el.style.height = `${startY}px`;
+          } else if (dir === 1) {
+            el.style.left = `${startX}px`;
+            el.style.top = `${startY - thickness / 2}px`;
+            el.style.width = `${Math.max(0, width - startX)}px`;
+            el.style.height = `${thickness}px`;
+          } else if (dir === 2) {
+            el.style.left = `${startX - thickness / 2}px`;
+            el.style.top = `${startY}px`;
+            el.style.width = `${thickness}px`;
+            el.style.height = `${Math.max(0, height - startY)}px`;
+          } else {
+            el.style.left = "0px";
+            el.style.top = `${startY - thickness / 2}px`;
+            el.style.width = `${startX}px`;
+            el.style.height = `${thickness}px`;
+          }
+          raysLayer.appendChild(el);
+        });
+      }
+
       const preferredFields = [
         "comentarios",
         "comentario",
@@ -671,7 +717,9 @@
         layer.style.gridTemplateRows = `repeat(${rows}, 1fr)`;
         layer.style.width = `${rect.width}px`;
         layer.style.height = `${rect.height}px`;
+        const layerRect = layer.getBoundingClientRect();
         layer.innerHTML = "";
+        const rayLines = [];
         points.forEach((p) => {
           if (p.x == null || p.y == null) return;
           let col = Math.max(0, Math.min(cols - 1, Math.floor((p.x / baseWidth) * cols)));
@@ -690,6 +738,7 @@
             });
           }
           const genderColor = topGender ? (genderColors[topGender] || "#999") : "#999";
+          const genderBg = p.external ? "rgba(249, 94, 138, 0.5)" : genderColor;
 
           const wrap = document.createElement("div");
           wrap.className = "marker-pair";
@@ -705,7 +754,7 @@
           const genderEl = document.createElement("div");
           genderEl.className = "marker gender";
           if (p.external) genderEl.classList.add("external");
-          genderEl.style.background = p.external ? "rgba(249, 94, 138, 0.5)" : genderColor;
+          genderEl.style.background = genderBg;
           genderEl.title = topGender ? `Género mayoritario: ${topGender}` : "Sin género";
 
           // Nivel de estudios predominante
@@ -740,7 +789,27 @@
           wrap.appendChild(studyEl);
           layer.appendChild(wrap);
 
+          if (p.__recent) {
+            let startX = ((col + 1.5) / cols) * rect.width;
+            let startY = ((row + 0.25) / rows) * rect.height;
+            const dir = p.__dir || 0;
+            if (layerRect && typeof layerRect.left === "number") {
+              const gRect = genderEl.getBoundingClientRect();
+              startX = gRect.left - layerRect.left + gRect.width / 2;
+              startY = gRect.top - layerRect.top + gRect.height / 2;
+              if (dir === 1 || dir === 3) {
+                startY += gRect.height / 7; // ajuste fino hacia abajo solo para horizontales
+              }
+            }
+            rayLines.push({
+              x: startX,
+              y: startY,
+              dir,
+              color: genderColor,
+            });
+          }
         });
+        drawRays(rayLines);
       }
 
       async function loadPoints() {
