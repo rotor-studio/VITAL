@@ -216,11 +216,11 @@
       position: absolute;
       left: 40px;
       bottom: 40px;
-      width: 200px;
+      width: 240px;
       display: inline-flex;
       flex-direction: column;
       gap: 8px;
-      padding: 12px 12px 10px 12px;
+      padding: 14px 14px 12px 14px;
       background: rgba(0, 0, 0, 0.85);
       color: #f8f8f8;
       border: 2px solid #f95e8a;
@@ -238,10 +238,11 @@
     }
     .character__img {
       width: 100%;
-      aspect-ratio: 3 / 4;
-      object-fit: cover;
-      border: 1px solid rgba(255,255,255,0.25);
-      background: #111;
+      aspect-ratio: 3 / 5.5;
+      object-fit: contain;
+      object-position: center;
+      border: none;
+      background: transparent;
     }
     .character__label {
       font-weight: 700;
@@ -355,6 +356,12 @@
       transform: translate3d(0,0,0);
       animation: wordFloat var(--wc-duration, 11s) ease-in-out infinite alternate;
     }
+    .word-cloud__item.is-active {
+      background: rgba(249, 94, 138, 0.9);
+      color: #111;
+      border-color: rgba(249,94,138,0.9);
+      box-shadow: 0 6px 18px rgba(249,94,138,0.35);
+    }
     @keyframes wordFloat {
       0% { transform: translate3d(var(--wc-dx, -3px), var(--wc-dy, -2px), 0); }
       25% { transform: translate3d(calc(var(--wc-dx, -3px) * 0.3), calc(var(--wc-dy, -2px) * 0.4), 0); }
@@ -465,6 +472,9 @@
       let statsIndex = 0;
       let statsTimer = null;
       let cloudItems = [];
+      const wordNodes = new Map();
+      let activeWord = null;
+      let activeWordTimer = null;
       let characters = [];
       let characterTotal = 0;
       let characterIndex = 0;
@@ -555,12 +565,24 @@
               })
               .filter(Boolean);
             if (!messages.length) return;
+            let words = [];
+            const rawWords = payload.asociaciones_alava;
+            if (Array.isArray(rawWords)) {
+              words = rawWords;
+            } else if (typeof rawWords === "string") {
+              words = rawWords.split(/[,;]/);
+            }
+            words = words
+              .map((s) => (typeof s === "string" ? s.trim() : ""))
+              .filter(Boolean)
+              .map((s) => s.toLowerCase());
             timelineItems.push({
               cp: p.label || p.codigo_postal,
               messages,
               created_at: r.created_at || "",
               x: p.x,
               y: p.y,
+              words,
             });
           });
         });
@@ -697,6 +719,7 @@
       function renderCloud() {
         if (!wordCloud) return;
         wordCloud.innerHTML = "";
+        wordNodes.clear();
         if (!cloudItems.length) return;
         const max = cloudItems[0][1];
         const min = cloudItems[cloudItems.length - 1][1];
@@ -712,12 +735,35 @@
           const dy = (Math.random() * 5 + 2) * (Math.random() > 0.5 ? 1 : -1);
           const delay = (Math.random() * 5).toFixed(2);
           const duration = (10 + Math.random() * 6).toFixed(2);
+          const norm = word.toString().toLowerCase();
+          span.dataset.word = norm;
           span.style.setProperty("--wc-dx", `${dx}px`);
           span.style.setProperty("--wc-dy", `${dy}px`);
           span.style.animationDelay = `${delay}s`;
           span.style.setProperty("--wc-duration", `${duration}s`);
+          if (activeWord && activeWord === norm) {
+            span.classList.add("is-active");
+          }
+          wordNodes.set(norm, span);
           wordCloud.appendChild(span);
         });
+      }
+
+      function setActiveWord(word) {
+        if (activeWordTimer) clearTimeout(activeWordTimer);
+        if (activeWord && wordNodes.has(activeWord)) {
+          const prev = wordNodes.get(activeWord);
+          prev?.classList.remove("is-active");
+        }
+        activeWord = word;
+        const el = word ? wordNodes.get(word) : null;
+        if (el) {
+          el.classList.add("is-active");
+          activeWordTimer = setTimeout(() => {
+            el.classList.remove("is-active");
+            activeWord = null;
+          }, 6000);
+        }
       }
 
       function showNextCharacter() {
@@ -839,6 +885,12 @@
         bubbleCp.textContent = `${cpLabel}${questionLabel}`;
         bubbleText.textContent = msgText;
         console.log("[timeline] mostrando", item.cp, "msg:", msgText.slice(0,80));
+        if (item.words && item.words.length) {
+          const pick = item.words[Math.floor(Math.random() * item.words.length)];
+          setActiveWord(pick);
+        } else {
+          setActiveWord(null);
+        }
         let left = viewportRect.width / 2;
         let top = viewportRect.height / 2;
         if (typeof item.x === "number" && typeof item.y === "number" && baseWidth && baseHeight) {
@@ -1097,10 +1149,16 @@
           baseWidth = data?.base_size?.width || baseWidth;
           baseHeight = data?.base_size?.height || baseHeight;
           points = (data?.points || []).map((p) => ({ ...p, __recent: false, __dir: 0 }));
-          characters = Array.isArray(data?.characters) ? data.characters : characters;
-          characterTotal = characters.reduce((acc, c) => acc + (c.count || 0), 0);
-          characterIndex = 0;
-          showNextCharacter();
+          const incomingChars = Array.isArray(data?.characters) ? data.characters : [];
+          const changedChars = JSON.stringify(incomingChars) !== JSON.stringify(characters);
+          if (changedChars) {
+            characters = incomingChars;
+            characterTotal = characters.reduce((acc, c) => acc + (c.count || 0), 0);
+            characterIndex = 0;
+            if (characters.length) {
+              showNextCharacter();
+            }
+          }
           buildTimelineItems(points);
           buildStatsItems(points);
           buildCloudItems(points);
