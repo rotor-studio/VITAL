@@ -60,7 +60,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   };
 
-  const languagePrompt = `${I18N.es.selectLanguageTitle} / ${I18N.eu.selectLanguageTitle} / ${I18N.en.selectLanguageTitle}`;
+  const languagePrompt = `${I18N.eu.selectLanguageTitle} / ${I18N.es.selectLanguageTitle} / ${I18N.en.selectLanguageTitle}`;
 
   let cfg = null;
   let stepsByLang = {};
@@ -136,8 +136,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const languages = (cfg && Array.isArray(cfg.languages) && cfg.languages.length)
       ? cfg.languages
       : [{ code: 'es', label: 'Castellano' }];
-    const heading = `${I18N.es.selectLanguageTitle} · ${I18N.eu.selectLanguageTitle} · ${I18N.en.selectLanguageTitle}`;
-    const sub = `${I18N.es.selectLanguageSubtitle}<br>${I18N.eu.selectLanguageSubtitle}<br>${I18N.en.selectLanguageSubtitle}`;
+    const heading = `${I18N.eu.selectLanguageTitle} · ${I18N.es.selectLanguageTitle} · ${I18N.en.selectLanguageTitle}`;
+    const sub = `${I18N.eu.selectLanguageSubtitle}<br>${I18N.es.selectLanguageSubtitle}<br>${I18N.en.selectLanguageSubtitle}`;
     const buttons = languages.map(l => `<button class="btn primary" type="button" data-lang="${l.code}">${l.label}</button>`).join('');
     stepHost.innerHTML = `
       <div class="lang-select">
@@ -231,19 +231,21 @@ document.addEventListener('DOMContentLoaded', () => {
         return `
           <div class="field">
             <label class="lbl" for="${field.id}">${field.label || ''}</label>
-            <textarea id="${field.id}" rows="${field.rows || 3}" ${field.placeholder ? `placeholder="${field.placeholder}"` : ''} ${field.maxLength ? `maxlength="${field.maxLength}"` : ''} style="width:100%; background:#0f0f14; color:#fff; border:1px solid #2a2a33; border-radius:12px; padding:14px; font-size:1.05rem;"></textarea>
+            <textarea id="${field.id}" rows="${field.rows || 3}" ${field.placeholder ? `placeholder="${field.placeholder}"` : ''} ${field.maxLength ? `maxlength="${field.maxLength}"` : ''}></textarea>
             ${field.hint ? `<div class="hint">${field.hint}</div>` : ''}
           </div>
         `;
       }
-      const inputType = field.type === 'number' ? 'number' : 'text';
+      const isNumber = field.type === 'number';
+      const inputType = isNumber ? 'number' : 'text';
       const attrs = [
         `id="${field.id}"`,
         `type="${inputType}"`,
+        isNumber ? 'inputmode="numeric" pattern="[0-9]*"' : '',
         field.placeholder ? `placeholder="${field.placeholder}"` : '',
         field.maxLength ? `maxlength="${field.maxLength}"` : '',
-        field.min ? `min="${field.min}"` : '',
-        field.max ? `max="${field.max}"` : ''
+        isNumber && field.min ? `min="${field.min}"` : '',
+        isNumber && field.max ? `max="${field.max}"` : ''
       ].filter(Boolean).join(' ');
       return `
         <div class="field">
@@ -278,7 +280,7 @@ document.addEventListener('DOMContentLoaded', () => {
       body = `
         ${titleBlock}
         <label class="lbl" for="${id}">${label || ''}</label>
-        <textarea id="${id}" rows="3" ${placeholder ? `placeholder="${placeholder}"` : ''} ${maxLength ? `maxlength="${maxLength}"` : ''} style="width:100%; background:#0f0f14; color:#fff; border:1px solid #2a2a33; border-radius:12px; padding:14px; font-size:1.05rem;"></textarea>
+        <textarea id="${id}" rows="3" ${placeholder ? `placeholder="${placeholder}"` : ''} ${maxLength ? `maxlength="${maxLength}"` : ''}></textarea>
         ${commentField ? renderExtraField(commentField) : ''}
         ${hint ? `<div class="hint">${hint}</div>` : ''}
         ${nav}

@@ -6,8 +6,8 @@
     "en": "Survey"
   },
   "languages": [
-    { "code": "es", "label": "Castellano" },
     { "code": "eu", "label": "Euskara" },
+    { "code": "es", "label": "Castellano" },
     { "code": "en", "label": "English" }
   ],
   "steps": {

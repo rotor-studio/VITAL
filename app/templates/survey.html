@@ -9,27 +9,126 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <link rel="stylesheet" href="/static/styles.css" />
   <style>
-    :root { --bg:#0e0e10; --fg:#fff; --muted:#9aa0a6; --accent:#8b5cf6; --accent2:#22d3ee; }
-    body { background:var(--bg); color:var(--fg); font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
-    .wrap { max-width: 640px; margin: 0 auto; padding: 24px 16px 40px; }
-    h1 { font-size: 1.8rem; margin: 0 0 8px; }
-    p.sub { color: var(--muted); margin: 0 0 16px; }
-    .card { background: #141418; border: 1px solid #23232a; border-radius: 16px; padding: 20px; }
-    .progress { width:100%; height: 8px; background:#1b1b20; border-radius:999px; overflow:hidden; margin: 8px 0 20px;}
+    :root {
+      --bg: #9f9f9f;
+      --fg: #0b0c0c;
+      --muted: #e4e6eb;
+      --accent: #f95e8a;
+      --accent2: #ffd5e4;
+      --grid-line: rgba(255,255,255,0.45);
+      --card: #a6c5bc;
+      --field-bg: #f6f3e1;
+      --cell-x: 16px;
+      --cell-y: 18px;
+      --margin-cells: 2;
+      --wrap-max: 760px;
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      position: relative;
+      margin: 0;
+      min-height: 100vh;
+      padding: calc(var(--margin-cells) * var(--cell-y)) calc(var(--margin-cells) * var(--cell-x));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background-color: var(--bg);
+      color: var(--fg);
+      font-family: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+      overflow-x: hidden;
+      color-scheme: light;
+    }
+    body::before {
+      content: "";
+      position: fixed;
+      inset: calc(var(--margin-cells) * var(--cell-y)) calc(var(--margin-cells) * var(--cell-x));
+      background-image:
+        linear-gradient(var(--grid-line) 1px, transparent 1px),
+        linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+      background-size: var(--cell-x) var(--cell-y);
+      pointer-events: none;
+      z-index: 0;
+    }
+    .wrap {
+      position: relative;
+      z-index: 1;
+      width: min(var(--wrap-max), 100%);
+      margin: 0 auto;
+      padding: 36px 18px 48px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      justify-content: center;
+    }
+    header { text-align: left; }
+    h1 {
+      font-size: 2rem;
+      margin: 0 0 14px;
+      letter-spacing: 0.02em;
+      color: #f8f8f8;
+      font-family: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+      display: inline-block;
+      padding: 6px 10px;
+      background: rgba(0,0,0,0.65);
+      border: 1px solid rgba(255,255,255,0.35);
+      border-radius: 0;
+    }
+    p.sub {
+      color: var(--muted);
+      margin: 0 0 16px;
+      font-family: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+    }
+    p#stepText {
+      display: inline-block;
+      padding: 4px 8px;
+      background: rgba(0,0,0,0.65);
+      border: 1px solid rgba(255,255,255,0.35);
+      border-radius: 0;
+      color: #f8f8f8;
+      letter-spacing: 0.015em;
+      margin-top: 10px;
+      margin-bottom: 36px;
+    }
+    .card { background: var(--card); border: none; border-radius: 0; padding: 24px 22px; color: #0b0c0c; box-shadow: 0 16px 34px rgba(0,0,0,0.12); }
+    .progress { width:100%; height: 8px; background: rgba(0,0,0,0.12); border-radius:0; overflow:hidden; margin: 10px auto 20px; }
     .progress > div { height:100%; width:0%; background: linear-gradient(90deg,var(--accent),var(--accent2)); transition: width .35s ease; }
     .q { min-height: 220px; display:none; opacity:0; transform: translateY(6px); transition: opacity .28s ease, transform .28s ease; }
     .q.active { display:block; opacity:1; transform: translateY(0); }
-    .field { margin: 14px 0 8px; }
-    label.lbl { display:block; font-weight:600; margin-bottom:10px; }
-    select, input[type="text"], textarea {
-      width:100%; background:#0f0f14; color:#fff; border:1px solid #2a2a33; border-radius:12px; padding:14px; font-size:1.05rem;
+    .field { margin: 14px 0 12px; }
+    label.lbl { display:block; font-weight:700; margin-bottom:10px; color: #f8f8f8; letter-spacing: 0.01em; font-family: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif; }
+    select, input, textarea {
+      width:100%;
+      background: var(--field-bg);
+      background-color: var(--field-bg);
+      color: #0b0c0c;
+      border: none;
+      border-radius:0;
+      padding:14px 16px;
+      font-size:1.02rem;
+      min-height: 56px;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.35);
+      appearance: none;
+      -moz-appearance: none;
+      -webkit-appearance: none;
     }
+    textarea {
+      height: 56px;
+      min-height: 56px;
+      resize: vertical;
+      background: var(--field-bg);
+      background-color: var(--field-bg);
+      color: #0b0c0c;
+    }
+    input[type="number"]::-webkit-inner-spin-button,
+    input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+    input[type="number"] { -moz-appearance: textfield; }
     .choices { display:flex; gap:10px; flex-wrap: wrap; }
-    .chip { padding:12px 16px; border:1px solid #2a2a33; border-radius:999px; cursor:pointer; user-select:none; }
-    .chip[aria-pressed="true"] { background:#1f1f2a; border-color:#3b3b4a; }
+    .chip { padding:12px 16px; border:none; border-radius:0; cursor:pointer; user-select:none; background: rgba(255,255,255,0.4); color:#0b0c0c; }
+    .chip[aria-pressed="true"] { background: rgba(255,255,255,0.8); }
     .nav { display:flex; justify-content:space-between; gap:10px; margin-top:12px; }
-    .btn { flex:1; text-align:center; padding:14px 16px; border-radius:12px; border:1px solid #2a2a33; background:#171720; color:#fff; font-weight:600; font-size:1.05rem; }
-    .btn.primary { background:linear-gradient(90deg,var(--accent),var(--accent2)); border:none; }
+    .btn { flex:1; text-align:center; padding:14px 16px; border-radius:0; border:none; background:#e6ebe9; color:#0b0c0c; font-weight:700; font-size:1.05rem; font-family: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif; }
+    .btn.primary { background: rgba(0,0,0,0.7); border: none; color: #f8f8f8; box-shadow: 0 8px 18px rgba(0,0,0,0.25); }
     .btn:disabled { opacity:.5; }
     .hint { color:var(--muted); font-size:.95rem; margin-top:6px; }
     .done { text-align:center; padding:40px 10px; }
