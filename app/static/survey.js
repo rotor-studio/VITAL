@@ -75,6 +75,71 @@ document.addEventListener('DOMContentLoaded', () => {
   const prevSteps = [];
   const questionLabels = {};
 
+  function clampNumericFields(container) {
+    container.querySelectorAll('input[type="number"], input[data-numeric="true"]').forEach(input => {
+      const readNum = (el, attr) => {
+        const val = el.getAttribute(attr);
+        if (val == null || val === '') return null;
+        const num = parseInt(val, 10);
+        return Number.isNaN(num) ? null : num;
+      };
+      const min = readNum(input, 'min') ?? readNum(input, 'data-min');
+      const max = readNum(input, 'max') ?? readNum(input, 'data-max');
+      const maxDigitsAttr = input.getAttribute('maxlength');
+      const maxDigits = maxDigitsAttr ? parseInt(maxDigitsAttr, 10) : (max ? String(max).length : null);
+      if (maxDigits != null && !maxDigitsAttr) {
+        input.setAttribute('maxlength', `${maxDigits}`);
+      }
+      input.addEventListener('input', () => {
+        let digits = input.value.replace(/\D/g, '');
+        if (maxDigits != null) {
+          digits = digits.slice(0, maxDigits);
+        }
+        if (!digits) {
+          input.value = '';
+          return;
+        }
+        let num = parseInt(digits, 10);
+        if (!Number.isNaN(num)) {
+          if (min !== null && num < min) num = min;
+          if (max !== null && num > max) num = max;
+          input.value = num;
+        } else {
+          input.value = '';
+        }
+      });
+    });
+
+    const cpField = container.querySelector('#codigo_postal');
+    if (cpField) {
+      cpField.setAttribute('inputmode', 'numeric');
+      cpField.setAttribute('pattern', '[0-9]*');
+      cpField.addEventListener('input', () => {
+        const digits = (cpField.value || '').replace(/\D/g, '').slice(0, 5);
+      cpField.value = digits;
+    });
+
+    const ageField = container.querySelector('#edad');
+    if (ageField) {
+      const maxDigits = 3;
+      ageField.setAttribute('maxlength', `${maxDigits}`);
+      ageField.addEventListener('input', () => {
+        let digits = ageField.value.replace(/\D/g, '').slice(0, maxDigits);
+        if (!digits) {
+          ageField.value = '';
+          return;
+        }
+        let num = parseInt(digits, 10);
+        const min = ageField.min ? parseInt(ageField.min, 10) : null;
+        const max = ageField.max ? parseInt(ageField.max, 10) : null;
+        if (min !== null && num < min) num = min;
+        if (max !== null && num > max) num = max;
+        ageField.value = num;
+      });
+    }
+  }
+  }
+
   function setProgress(i) {
     if (!TOTAL_STEPS) {
       stepText.textContent = languagePrompt;
@@ -238,14 +303,17 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       const isNumber = field.type === 'number';
       const inputType = isNumber ? 'number' : 'text';
+      const numberMaxLen = isNumber && field.max ? String(field.max).length : null;
       const attrs = [
         `id="${field.id}"`,
         `type="${inputType}"`,
+        isNumber ? 'data-numeric="true"' : '',
         isNumber ? 'inputmode="numeric" pattern="[0-9]*"' : '',
+        isNumber ? 'step="1"' : '',
         field.placeholder ? `placeholder="${field.placeholder}"` : '',
-        field.maxLength ? `maxlength="${field.maxLength}"` : '',
-        isNumber && field.min ? `min="${field.min}"` : '',
-        isNumber && field.max ? `max="${field.max}"` : ''
+        isNumber && numberMaxLen ? `maxlength="${numberMaxLen}"` : (field.maxLength ? `maxlength="${field.maxLength}"` : ''),
+        isNumber && field.min ? `min="${field.min}" data-min="${field.min}"` : '',
+        isNumber && field.max ? `max="${field.max}" data-max="${field.max}"` : ''
       ].filter(Boolean).join(' ');
       return `
         <div class="field">
@@ -355,6 +423,7 @@ document.addEventListener('DOMContentLoaded', () => {
     stepHost.innerHTML = body;
     setProgress(stepIndex);
     showOnly(stepHost);
+    clampNumericFields(stepHost);
 
     const btnBack = document.getElementById('btnBack');
     const btnNext = document.getElementById('btnNext');
