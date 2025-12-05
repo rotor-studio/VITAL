@@ -18,6 +18,9 @@
 - JS/CSS: Keep selectors scoped to template, avoid inline styles; prefer descriptive const names. Maintain existing pixel-art aesthetic in `/grid`.
 - Templates: Use Jinja2; keep logic minimal, offload to static JS where possible.
 - Naming: snake_case for Python, kebab-case for static assets, lowercase paths.
+- UI estado actual:
+  * Encuesta: pantalla final con donuts (valoración, personaje, edades, género) localizados; edad limitada a 1–99; botón “Responder otra vez” y bloque de stats debajo.
+  * `/grid`: nube activa en verde `#a6c5bc`, donut global de valoración arriba a la derecha, donut en globo de personaje (con botón “🎭 Probar personaje”), donuts sin centro negro.
 
 ## Testing & QA Guidelines
 - Manual checks:
