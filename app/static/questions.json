@@ -33,8 +33,8 @@
             "label": "Edad",
             "placeholder": "Tu edad",
             "required": true,
-            "min": 10,
-            "max": 120
+            "min": 1,
+            "max": 99
           },
           {
             "id": "genero",
@@ -313,8 +313,8 @@
             "label": "Adina",
             "placeholder": "Zure adina",
             "required": true,
-            "min": 10,
-            "max": 120
+            "min": 1,
+            "max": 99
           },
           {
             "id": "genero",
@@ -593,8 +593,8 @@
             "label": "Age",
             "placeholder": "Your age",
             "required": true,
-            "min": 10,
-            "max": 120
+            "min": 1,
+            "max": 99
           },
           {
             "id": "genero",

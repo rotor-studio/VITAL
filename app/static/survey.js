@@ -8,6 +8,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const doneTitle = document.querySelector('#done h2');
   const doneSub = document.querySelector('#done p.sub');
   const again = document.getElementById('again');
+  const miniStats = document.getElementById('miniStats');
+  const statsMeta = document.getElementById('statsMeta');
 
   const I18N = {
     es: {
@@ -22,6 +24,14 @@ document.addEventListener('DOMContentLoaded', () => {
       doneTitle: '¡Gracias!',
       doneSub: 'Tu respuesta ha sido enviada.',
       again: 'Responder otra vez',
+      statsMeta: 'Cargando datos…',
+      statsEmpty: 'Aún no hay datos suficientes.',
+      statsError: 'No se pudieron cargar los datos.',
+      statsAge: 'Edades',
+      statsGender: 'Género',
+      statsRating: 'Valoración de la exposición',
+      statsCharacter: 'Personaje favorito',
+      statsCount: n => n === 1 ? '1 respuesta recibida' : `${n} respuestas recibidas`,
       statusRequired: 'Completa este paso para continuar.',
       statusSending: 'Enviando…',
       statusError: 'Sin conexión. Inténtalo de nuevo.'
@@ -38,6 +48,14 @@ document.addEventListener('DOMContentLoaded', () => {
       doneTitle: 'Eskerrik asko!',
       doneSub: 'Zure erantzuna bidali da.',
       again: 'Erantzun berriro',
+      statsMeta: 'Datuak kargatzen…',
+      statsEmpty: 'Oraindik ez dago nahikoa datu.',
+      statsError: 'Ezin izan dira datuak kargatu.',
+      statsAge: 'Adinak',
+      statsGender: 'Generoa',
+      statsRating: 'Erakusketaren balorazioa',
+      statsCharacter: 'Pertsonaia gogokoa',
+      statsCount: n => n === 1 ? 'Erantzun 1 jaso da' : `${n} erantzun jaso dira`,
       statusRequired: 'Osatu urrats hau jarraitzeko.',
       statusSending: 'Bidaltzen…',
       statusError: 'Konexiorik gabe. Saiatu berriro.'
@@ -54,6 +72,14 @@ document.addEventListener('DOMContentLoaded', () => {
       doneTitle: 'Thank you!',
       doneSub: 'Your response has been sent.',
       again: 'Answer again',
+      statsMeta: 'Loading data…',
+      statsEmpty: 'Not enough data yet.',
+      statsError: 'Could not load data.',
+      statsAge: 'Age',
+      statsGender: 'Gender',
+      statsRating: 'Exhibition rating',
+      statsCharacter: 'Favorite character',
+      statsCount: n => n === 1 ? '1 response collected' : `${n} responses collected`,
       statusRequired: 'Please complete this step to continue.',
       statusSending: 'Sending…',
       statusError: 'No connection. Please try again.'
@@ -74,6 +100,94 @@ document.addEventListener('DOMContentLoaded', () => {
   const stepIndexById = new Map();
   const prevSteps = [];
   const questionLabels = {};
+  const genderLabelMap = {
+    es: {
+      man: 'Hombre',
+      woman: 'Mujer',
+      nonbinary: 'No binario',
+      otro: 'Otro',
+      other: 'Otro',
+      prefiero_no_decir: 'Prefiero no decir',
+      no_responde: 'No responde'
+    },
+    eu: {
+      man: 'Gizona',
+      woman: 'Emakumea',
+      nonbinary: 'Ez bitarra',
+      otro: 'Beste bat',
+      other: 'Beste bat',
+      prefiero_no_decir: 'Ez dut esan nahi',
+      no_responde: 'Erantzunik ez'
+    },
+    en: {
+      man: 'Man',
+      woman: 'Woman',
+      nonbinary: 'Non-binary',
+      otro: 'Other',
+      other: 'Other',
+      prefiero_no_decir: 'Prefer not to say',
+      no_responde: 'No answer'
+    }
+  };
+  const genderColors = {
+    man: '#6da7ff',
+    woman: '#f8a1d1',
+    nonbinary: '#9b7df0',
+    otro: '#ffcf5c',
+    other: '#ffcf5c',
+    prefiero_no_decir: '#a0a0a0',
+    no_responde: '#a0a0a0'
+  };
+  const ageBuckets = [
+    { key: '10_17', label: '10-17', color: '#6da7ff' },
+    { key: '18_25', label: '18-25', color: '#f8a1d1' },
+    { key: '26_35', label: '26-35', color: '#ffcf5c' },
+    { key: '36_45', label: '36-45', color: '#9b7df0' },
+    { key: '46_55', label: '46-55', color: '#66d399' },
+    { key: '56_65', label: '56-65', color: '#ffa45c' },
+    { key: '66_plus', label: '66+', color: '#ffffff' }
+  ];
+  const characterPalette = ['var(--accent)', '#ffd5e4', '#66d399', '#9b7df0', '#ffcf5c'];
+
+  function bucketAge(age) {
+    if (age == null || Number.isNaN(age)) return null;
+    if (age <= 17) return '10_17';
+    if (age <= 25) return '18_25';
+    if (age <= 35) return '26_35';
+    if (age <= 45) return '36_45';
+    if (age <= 55) return '46_55';
+    if (age <= 65) return '56_65';
+    return '66_plus';
+  }
+
+  function normalizeGenderKey(value) {
+    if (!value) return '';
+    const v = `${value}`.trim().toLowerCase();
+    if (['hombre', 'man', 'masculino'].includes(v)) return 'man';
+    if (['mujer', 'woman', 'femenino'].includes(v)) return 'woman';
+    if (v.includes('no bin')) return 'nonbinary';
+    if (v.includes('prefiero') || v.includes('no decir')) return 'prefiero_no_decir';
+    if (v.includes('no responde')) return 'no_responde';
+    if (v.includes('otro')) return 'otro';
+    return v.replace(/\s+/g, '_');
+  }
+
+  function localizeGenderLabel(key) {
+    const norm = normalizeGenderKey(key);
+    const labels = genderLabelMap[currentLang] || genderLabelMap.es;
+    return labels[norm] || key || '';
+  }
+
+  function prettifyCharacterLabel(value) {
+    if (!value) return '';
+    return `${value}`
+      .replace(/[_-]+/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .split(' ')
+      .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+      .join(' ');
+  }
 
   function clampNumericFields(container) {
     container.querySelectorAll('input[type="number"], input[data-numeric="true"]').forEach(input => {
@@ -160,6 +274,12 @@ document.addEventListener('DOMContentLoaded', () => {
     el.classList.add('active');
   }
 
+  function goToDone() {
+    setProgress(TOTAL_STEPS);
+    showOnly(doneView);
+    loadMiniStats();
+  }
+
   function requiredMessage() {
     statusEl.textContent = locale.statusRequired;
     setTimeout(() => {
@@ -185,6 +305,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (doneTitle) doneTitle.textContent = locale.doneTitle;
     if (doneSub) doneSub.textContent = locale.doneSub;
     again.textContent = locale.again;
+    if (statsMeta) statsMeta.textContent = locale.statsMeta;
   }
 
   function renderLanguageSelector() {
@@ -574,8 +695,7 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
           await postResponse(surveyId, answers);
           statusEl.textContent = '';
-          setProgress(TOTAL_STEPS);
-          showOnly(doneView);
+          goToDone();
         } catch (e) {
           statusEl.textContent = locale.statusError;
           btnNext.disabled = false;
@@ -589,8 +709,7 @@ document.addEventListener('DOMContentLoaded', () => {
           }
         }
         if (nextIndex >= TOTAL_STEPS) {
-          setProgress(TOTAL_STEPS);
-          showOnly(doneView);
+          goToDone();
         } else {
           prevSteps.push(stepIndex);
           stepIndex = nextIndex;
@@ -617,6 +736,194 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     if (!res.ok) throw new Error('Server error');
     return res.json();
+  }
+
+  function buildSummary(rows) {
+    const ageCounts = {};
+    const genderCounts = {};
+    const characterCounts = {};
+    const ratings = [];
+    (rows || []).forEach(row => {
+      const payload = row.payload || {};
+      const age = Number(payload.edad);
+      const ageBucket = bucketAge(age);
+      if (ageBucket) ageCounts[ageBucket] = (ageCounts[ageBucket] || 0) + 1;
+
+      const genderRaw = payload.genero_labels ?? payload.genero;
+      const gender = Array.isArray(genderRaw) ? genderRaw[0] : genderRaw;
+      if (gender) genderCounts[gender] = (genderCounts[gender] || 0) + 1;
+
+      const rating = Number(payload.valoracion_exposicion);
+      if (!Number.isNaN(rating)) ratings.push(rating);
+
+      const characterRaw = payload.personaje_importante_labels ?? payload.personaje_importante;
+      const character = Array.isArray(characterRaw) ? characterRaw[0] : characterRaw;
+      if (character) characterCounts[character] = (characterCounts[character] || 0) + 1;
+    });
+
+    const ageSegments = ageBuckets
+      .map(b => ({ label: b.label, value: ageCounts[b.key] || 0, color: b.color }))
+      .filter(seg => seg.value > 0);
+    const genderSegments = Object.entries(genderCounts)
+      .map(([label, value]) => ({
+        label: localizeGenderLabel(label),
+        value,
+        color: genderColors[normalizeGenderKey(label)] || 'var(--accent)'
+      }))
+      .sort((a, b) => b.value - a.value);
+    const characterSegments = Object.entries(characterCounts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 4)
+      .map(([label, value], idx) => ({
+        label: prettifyCharacterLabel(label),
+        value,
+        color: characterPalette[idx % characterPalette.length]
+      }));
+    const ratingCount = ratings.length;
+    const ratingAvg = ratingCount ? ratings.reduce((acc, v) => acc + v, 0) / ratingCount : 0;
+    return {
+      total: Array.isArray(rows) ? rows.length : 0,
+      ageSegments,
+      genderSegments,
+      characterSegments,
+      ratingAvg,
+      ratingCount
+    };
+  }
+
+  function renderDonut(segments) {
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('viewBox', '0 0 108 108');
+    svg.classList.add('donut');
+    const total = segments.reduce((acc, seg) => acc + (seg.value || 0), 0);
+    if (!total) {
+      const inner = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      inner.setAttribute('cx', '54');
+      inner.setAttribute('cy', '54');
+      inner.setAttribute('r', '34');
+      inner.setAttribute('fill', 'rgba(0,0,0,0.08)');
+      svg.appendChild(inner);
+      return { svg, total };
+    }
+    const radius = 42;
+    const circumference = 2 * Math.PI * radius;
+    let offset = 0;
+    segments.forEach(seg => {
+      const portion = (seg.value || 0) / total;
+      const dash = portion * circumference;
+      const gap = Math.max(circumference - dash, 0);
+      const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      circle.setAttribute('cx', '54');
+      circle.setAttribute('cy', '54');
+      circle.setAttribute('r', `${radius}`);
+      circle.setAttribute('fill', 'none');
+      circle.style.stroke = seg.color || 'var(--accent)';
+      circle.setAttribute('stroke-width', '12');
+      circle.setAttribute('stroke-dasharray', `${dash} ${gap}`);
+      circle.setAttribute('stroke-dashoffset', `${-offset}`);
+      circle.setAttribute('transform', 'rotate(-90 54 54)');
+      svg.appendChild(circle);
+      offset += dash;
+    });
+    const inner = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    inner.setAttribute('cx', '54');
+    inner.setAttribute('cy', '54');
+    inner.setAttribute('r', '30');
+    inner.setAttribute('fill', 'rgba(0,0,0,0.08)');
+    svg.appendChild(inner);
+    return { svg, total };
+  }
+
+  function renderDonutCard(title, meta, segments) {
+    if (!segments || segments.length === 0) return null;
+    const { svg, total } = renderDonut(segments);
+    if (!total) return null;
+    const card = document.createElement('div');
+    card.className = 'stat-card';
+    const h = document.createElement('h3');
+    h.textContent = title;
+    const metaEl = document.createElement('p');
+    metaEl.className = 'meta';
+    metaEl.textContent = meta;
+    const legend = document.createElement('div');
+    legend.className = 'legend';
+    segments
+      .filter(seg => !seg.hideLegend)
+      .forEach(seg => {
+        const row = document.createElement('div');
+        row.className = 'legend-row';
+        const sw = document.createElement('span');
+        sw.className = 'legend-swatch';
+        sw.style.background = seg.color || 'var(--accent)';
+        const txt = document.createElement('span');
+        txt.textContent = `${seg.label}`;
+        row.appendChild(sw);
+        row.appendChild(txt);
+        legend.appendChild(row);
+      });
+    card.appendChild(h);
+    card.appendChild(metaEl);
+    card.appendChild(svg);
+    card.appendChild(legend);
+    return card;
+  }
+
+  function renderMiniStats(summary) {
+    if (!miniStats) return;
+    miniStats.innerHTML = '';
+    if (!summary || !summary.total) {
+      if (statsMeta) statsMeta.textContent = locale.statsEmpty;
+      miniStats.innerHTML = `<p class="hint">${locale.statsEmpty}</p>`;
+      return;
+    }
+    if (statsMeta) statsMeta.textContent = '';
+    const cards = [];
+    if (summary.ratingCount) {
+      const pct = Math.max(0, Math.min(100, (summary.ratingAvg / 10) * 100));
+      const ratingSegments = [
+        { label: `${summary.ratingAvg.toFixed(1)} / 10`, value: pct, color: 'var(--accent)' },
+        { label: 'Resto', value: 100 - pct, color: 'rgba(0,0,0,0.12)', hideLegend: true }
+      ];
+      const metaRating = locale.statsCount ? locale.statsCount(summary.ratingCount) : `${summary.ratingCount}`;
+      cards.push(renderDonutCard(locale.statsRating, metaRating, ratingSegments));
+    }
+    if (summary.characterSegments && summary.characterSegments.length) {
+      const characterTotal = summary.characterSegments.reduce((acc, s) => acc + s.value, 0);
+      const metaChar = locale.statsCount ? locale.statsCount(characterTotal) : `${characterTotal}`;
+      cards.push(renderDonutCard(locale.statsCharacter, metaChar, summary.characterSegments));
+    }
+    const ageTotal = summary.ageSegments.reduce((acc, s) => acc + s.value, 0);
+    if (ageTotal) {
+      const metaAge = locale.statsCount ? locale.statsCount(ageTotal) : `${ageTotal}`;
+      cards.push(renderDonutCard(locale.statsAge, metaAge, summary.ageSegments));
+    }
+    const genderTotal = summary.genderSegments.reduce((acc, s) => acc + s.value, 0);
+    if (genderTotal) {
+      const metaGender = locale.statsCount ? locale.statsCount(genderTotal) : `${genderTotal}`;
+      cards.push(renderDonutCard(locale.statsGender, metaGender, summary.genderSegments));
+    }
+    if (!cards.length) {
+      miniStats.innerHTML = `<p class="hint">${locale.statsEmpty}</p>`;
+      return;
+    }
+    cards.filter(Boolean).forEach(card => miniStats.appendChild(card));
+  }
+
+  async function loadMiniStats() {
+    if (!miniStats) return;
+    if (statsMeta) statsMeta.textContent = locale.statsMeta;
+    miniStats.innerHTML = '';
+    try {
+      const res = await fetch('/api/responses?status=approved', { cache: 'no-store' });
+      if (!res.ok) throw new Error('Server error');
+      const rows = await res.json();
+      const summary = buildSummary(rows);
+      renderMiniStats(summary);
+    } catch (err) {
+      console.error('miniStats error', err);
+      if (statsMeta) statsMeta.textContent = locale.statsError;
+      miniStats.innerHTML = `<p class="hint">${locale.statsError}</p>`;
+    }
   }
 
   again.addEventListener('click', () => {

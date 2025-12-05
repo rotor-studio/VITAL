@@ -80,7 +80,7 @@
       min-width: 0;
       max-width: none;
       padding: 8px 10px;
-      background: #a6c5bc;
+      background: #f95e8a;
       color: #0b0c0c;
       border: none;
       box-shadow: 0 10px 24px rgba(0,0,0,0.4);
@@ -97,14 +97,14 @@
     }
     .zoom-bubble strong {
       display: block;
-      color: #f8f8f8;
+      color: #0b0c0c;
       margin-bottom: 4px;
       font-size: 0.95rem;
       white-space: nowrap;
     }
     @keyframes zoomFlash {
-      from { background: #a6c5bc; }
-      to { background: #b7d3ca; }
+      from { background: #f95e8a; }
+      to { background: #ff7fa6; }
     }
     .zoom-target {
       transform-origin: center center;
@@ -318,6 +318,31 @@
       color: #eaeaea;
       opacity: 0.85;
     }
+    .character__donut {
+      position: relative;
+      width: 120px;
+      height: 120px;
+      align-self: center;
+      margin-top: 6px;
+    }
+    .character__donut-value {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 1.15rem;
+      letter-spacing: 0.01em;
+      color: #0b0c0c;
+    }
+    .character__donut-meta {
+      text-align: center;
+      margin-top: 6px;
+      font-size: 0.82rem;
+      color: #f8f8f8;
+      opacity: 0.9;
+    }
     .stats__title {
       font-weight: 700;
       letter-spacing: 0.01em;
@@ -420,10 +445,10 @@
       animation: wordFloat var(--wc-duration, 11s) ease-in-out infinite alternate;
     }
     .word-cloud__item.is-active {
-      background: rgba(249, 94, 138, 0.9);
-      color: #111;
-      border-color: rgba(249,94,138,0.9);
-      box-shadow: 0 6px 18px rgba(249,94,138,0.35);
+      background: #a6c5bc;
+      color: #0b0c0c;
+      border-color: #a6c5bc;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.25);
     }
     @keyframes wordFloat {
       0% { transform: translate3d(var(--wc-dx, -3px), var(--wc-dy, -2px), 0); }
@@ -431,6 +456,50 @@
       50% { transform: translate3d(calc(var(--wc-dx, -3px) * -0.25), calc(var(--wc-dy, -2px) * 0.2), 0); }
       75% { transform: translate3d(calc(var(--wc-dx, -3px) * 0.15), calc(var(--wc-dy, -2px) * -0.25), 0); }
       100% { transform: translate3d(calc(var(--wc-dx, -3px) * -1), calc(var(--wc-dy, -2px) * -1), 0); }
+    }
+    .global-rating {
+      position: absolute;
+      top: calc(var(--cell-y) * 3);
+      right: calc(var(--cell-x) * 2.5);
+      z-index: 7;
+      background: #a6c5bc;
+      color: #0b0c0c;
+      padding: 12px 14px 14px;
+      min-width: 180px;
+      box-shadow: 0 12px 24px rgba(0,0,0,0.2);
+      border: none;
+      text-align: center;
+      pointer-events: none;
+    }
+    .global-rating__title {
+      font-weight: 700;
+      letter-spacing: 0.01em;
+      margin: 0 0 6px;
+      font-size: 0.95rem;
+      color: #0b0c0c;
+    }
+    .global-rating__donut {
+      position: relative;
+      width: 120px;
+      height: 120px;
+      margin: 0 auto;
+    }
+    .global-rating__value {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 1.35rem;
+      letter-spacing: 0.01em;
+      color: #0b0c0c;
+    }
+    .global-rating__meta {
+      margin: 6px 0 0;
+      font-size: 0.85rem;
+      color: #0b0c0c;
+      opacity: 0.9;
     }
   </style>
 </head>
@@ -446,6 +515,7 @@
       <div class="pill">
         <button id="soundCheck" type="button">🔊 Probar sonido</button>
         <button id="zoomTest" type="button">🔍 Probar zoom</button>
+        <button id="characterTest" type="button">🎭 Probar personaje</button>
       </div>
     </div>
     <div class="timeline">
@@ -464,11 +534,32 @@
         <div class="stats__legend" id="statsLegend"></div>
       </div>
     </div>
+    <div class="global-rating" id="globalRating" aria-live="polite">
+      <p class="global-rating__title">Valoración global</p>
+      <div class="global-rating__donut">
+        <svg viewBox="0 0 120 120" id="globalRatingSvg" aria-hidden="true">
+          <circle cx="60" cy="60" r="44" fill="none" stroke="rgba(0,0,0,0.12)" stroke-width="12"></circle>
+          <circle cx="60" cy="60" r="44" fill="none" stroke="var(--accent, #f95e8a)" stroke-width="12" stroke-dasharray="0 999" stroke-dashoffset="0" transform="rotate(-90 60 60)" id="globalRatingArc"></circle>
+          <circle cx="60" cy="60" r="28" fill="#a6c5bc"></circle>
+        </svg>
+        <div class="global-rating__value" id="globalRatingValue">--</div>
+      </div>
+      <p class="global-rating__meta" id="globalRatingMeta"></p>
+    </div>
     <div class="character-timeline">
       <div class="character__bubble" id="characterBubble">
         <img class="character__img" id="characterImage" alt="Personaje" />
         <div class="character__label" id="characterLabel"></div>
         <div class="character__meta" id="characterMeta"></div>
+        <div class="character__donut" id="characterDonut" aria-hidden="true">
+          <svg viewBox="0 0 120 120" aria-hidden="true">
+            <circle cx="60" cy="60" r="44" fill="none" stroke="rgba(0,0,0,0.12)" stroke-width="12"></circle>
+            <circle cx="60" cy="60" r="44" fill="none" stroke="var(--accent, #f95e8a)" stroke-width="12" stroke-dasharray="0 999" stroke-dashoffset="0" transform="rotate(-90 60 60)" id="characterDonutArc"></circle>
+            <circle cx="60" cy="60" r="28" fill="#a6c5bc"></circle>
+          </svg>
+          <div class="character__donut-value" id="characterDonutValue">--</div>
+        </div>
+        <div class="character__donut-meta" id="characterDonutMeta"></div>
       </div>
     </div>
   </div>
@@ -522,11 +613,16 @@
       const zoomAudio = document.getElementById("zoomClip");
       const soundBtn = document.getElementById("soundCheck");
       const zoomBtn = document.getElementById("zoomTest");
+      const characterBtn = document.getElementById("characterTest");
       const zoomBubbleEl = document.getElementById("zoomBubble");
       const characterBubble = document.getElementById("characterBubble");
       const characterImage = document.getElementById("characterImage");
       const characterLabel = document.getElementById("characterLabel");
       const characterMeta = document.getElementById("characterMeta");
+      const characterDonut = document.getElementById("characterDonut");
+      const characterDonutArc = document.getElementById("characterDonutArc");
+      const characterDonutValue = document.getElementById("characterDonutValue");
+      const characterDonutMeta = document.getElementById("characterDonutMeta");
       if (!layer || !viewport) return;
 
       let points = [];
@@ -541,6 +637,7 @@
       let statsItems = [];
       let statsIndex = 0;
       let statsTimer = null;
+      let globalRating = { avg: 0, count: 0 };
       let cloudItems = [];
       const wordNodes = new Map();
       let activeWord = null;
@@ -565,6 +662,11 @@
       const statsBar = document.getElementById("statsBar");
       const statsDonut = document.getElementById("statsDonut");
       const statsLegend = document.getElementById("statsLegend");
+      const globalRatingWrap = document.getElementById("globalRating");
+      const globalRatingSvg = document.getElementById("globalRatingSvg");
+      const globalRatingArc = document.getElementById("globalRatingArc");
+      const globalRatingValue = document.getElementById("globalRatingValue");
+      const globalRatingMeta = document.getElementById("globalRatingMeta");
       const rootStyles = getComputedStyle(document.documentElement);
       const cols = parseInt(rootStyles.getPropertyValue("--cols"), 10) || 120;
       const rows = parseInt(rootStyles.getPropertyValue("--rows"), 10) || 60;
@@ -706,6 +808,8 @@
       function buildStatsItems(list) {
         const prevLen = statsItems.length;
         statsItems = [];
+        let ratingSum = 0;
+        let ratingCount = 0;
         list.forEach((p) => {
           const responsesTotal = Array.isArray(p.responses) ? p.responses.length : 0;
           const counts = {};
@@ -722,6 +826,8 @@
             const rating = Number(payload.valoracion_exposicion);
             if (!Number.isNaN(rating)) {
               ratingVals.push(rating);
+              ratingSum += rating;
+              ratingCount += 1;
             }
             const age = Number(payload.edad);
             const bucket = bucketAge(age);
@@ -789,6 +895,10 @@
         } else {
           statsIndex = statsIndex % statsItems.length;
         }
+        globalRating = {
+          avg: ratingCount ? ratingSum / ratingCount : 0,
+          count: ratingCount,
+        };
       }
 
       function buildCloudItems(list) {
@@ -883,6 +993,25 @@
         }
       }
 
+      function updateCharacterDonut(item) {
+        if (!characterDonut || !characterDonutArc || !characterDonutValue || !characterDonutMeta) return;
+        const count = item?.count != null ? item.count : 0;
+        const total = characterTotal || (count > 0 ? count : 0);
+        characterDonut.style.display = "block";
+        const pctBase = total ? (count / total) * 100 : (item?.percentage || 0);
+        const pct = Math.max(0, Math.min(100, pctBase));
+        const radius = 44;
+        const circumference = 2 * Math.PI * radius;
+        const dash = (pct / 100) * circumference;
+        const gap = Math.max(circumference - dash, 0);
+        characterDonutArc.setAttribute("stroke-dasharray", `${dash} ${gap}`);
+        characterDonutArc.setAttribute("stroke-dashoffset", "0");
+        characterDonutValue.textContent = `${count}`;
+        const pctLabel = `${Math.round(pct)}%`;
+        const totalLabel = total || characterTotal || 0;
+        characterDonutMeta.textContent = totalLabel ? `${count} / ${totalLabel} · ${pctLabel}` : `${count} · ${pctLabel}`;
+      }
+
       function showNextCharacter() {
         if (!characterBubble || !characters.length || !viewportRect) return;
         if (characterBubble.classList.contains("visible")) {
@@ -904,6 +1033,7 @@
           const votesLabel = count != null ? `Votos: ${count}${totalStr}` : "";
           characterMeta.textContent = pct ? `${votesLabel} · ${pct}` : votesLabel;
         }
+        updateCharacterDonut(item);
         characterBubble.classList.add("visible");
         playCharacterBlip();
         setTimeout(() => characterBubble.classList.remove("visible"), 5200);
@@ -1167,7 +1297,7 @@
             inner.setAttribute("cx", "60");
             inner.setAttribute("cy", "60");
             inner.setAttribute("r", "25");
-            inner.setAttribute("fill", "rgba(0,0,0,0.85)");
+            inner.setAttribute("fill", "#a6c5bc");
             donut.appendChild(inner);
             statsBar.appendChild(donut);
           }
@@ -1204,6 +1334,24 @@
         setTimeout(() => statsBubble.classList.remove("visible"), 6000);
         playStatsBlip();
         scheduleStats();
+      }
+
+      function renderGlobalRating() {
+        if (!globalRatingWrap || !globalRatingArc || !globalRatingValue || !globalRatingMeta) return;
+        if (!globalRating.count) {
+          globalRatingWrap.style.display = "none";
+          return;
+        }
+        globalRatingWrap.style.display = "block";
+        const pct = Math.max(0, Math.min(100, (globalRating.avg / 10) * 100));
+        const radius = 44;
+        const circumference = 2 * Math.PI * radius;
+        const dash = (pct / 100) * circumference;
+        const gap = Math.max(circumference - dash, 0);
+        globalRatingArc.setAttribute("stroke-dasharray", `${dash} ${gap}`);
+        globalRatingArc.setAttribute("stroke-dashoffset", "0");
+        globalRatingValue.textContent = globalRating.avg.toFixed(1);
+        globalRatingMeta.textContent = `${globalRating.count} votos`;
       }
 
       function render() {
@@ -1333,14 +1481,10 @@
             characters = incomingChars;
             characterTotal = characters.reduce((acc, c) => acc + (c.count || 0), 0);
             characterIndex = 0;
-            if (characters.length) {
-              showNextCharacter();
-            }
           }
           buildTimelineItems(points);
           buildStatsItems(points);
           buildCloudItems(points);
-          scheduleCharacter();
           // Marca las 3 más recientes según latest_at
           const withTime = points
             .map((p) => ({
@@ -1377,6 +1521,13 @@
           lastMaxTs = maxTs;
           render();
           renderCloud();
+          renderGlobalRating();
+          if (characters.length) {
+            setTimeout(() => {
+              showNextCharacter();
+            }, 150);
+          }
+          scheduleCharacter();
           scheduleStats();
           showNextTimeline();
         } catch (err) {
@@ -1428,6 +1579,16 @@
             zoomedMarker = { cp: pick.codigo_postal || pick.label };
             animateZoomTo(colZoom, rowZoom, pick);
           }
+        });
+      }
+      if (characterBtn) {
+        characterBtn.addEventListener("click", () => {
+          audioReady = true;
+          if (!characters.length) {
+            console.warn("[character] No hay personajes para mostrar");
+            return;
+          }
+          showNextCharacter();
         });
       }
 
