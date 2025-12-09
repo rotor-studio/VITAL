@@ -185,6 +185,9 @@
       z-index: 5;
       pointer-events: auto;
     }
+    .info.hidden {
+      display: none;
+    }
     .info strong { font-weight: 700; }
     .info kbd {
       display: inline-block;
@@ -511,7 +514,7 @@
     <div class="points-layer zoom-target" id="pointsLayer" aria-hidden="true"></div>
     <div class="zoom-bubble" id="zoomBubble"></div>
     <div class="word-cloud" id="wordCloud"></div>
-    <div class="info">
+    <div class="info hidden" id="infoPanel">
       <div class="pill">
         <button id="soundCheck" type="button">🔊 Probar sonido</button>
         <button id="zoomTest" type="button">🔍 Probar zoom</button>
@@ -575,6 +578,15 @@
       window.addEventListener("keydown", (ev) => {
         if (ev.key.toLowerCase() === "m") {
           overlay.classList.toggle("hidden");
+        }
+      });
+    })();
+    (() => {
+      const info = document.getElementById("infoPanel");
+      if (!info) return;
+      window.addEventListener("keydown", (ev) => {
+        if (ev.key.toLowerCase() === "g") {
+          info.classList.toggle("hidden");
         }
       });
     })();
