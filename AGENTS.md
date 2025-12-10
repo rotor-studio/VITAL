@@ -38,3 +38,7 @@
 ## Security & Configuration Tips
 - Basic auth for `/admin` is configured in `app/deps.py`; avoid logging credentials.
 - SQLite `encuesta.db` is local; do not commit it. Ensure new assets go in `app/static` or `app/data` as appropriate.***
+
+## Captive Portal & Startup
+- Portal cautivo: dnsmasq (`/opt/homebrew/etc/dnsmasq.conf`) responde todo a 192.168.2.1 en `bridge100`; PF redirige HTTP 80 → 192.168.2.1:8000 y DNS 53 → 192.168.2.1:53, bloquea 443. FastAPI expone sondas `/hotspot-detect.html`, `/generate_204`, `/gen_204`, `/connecttest.txt`, `/ncsi.txt` que redirigen a `/`.
+- Servicios al arranque: LaunchAgent `~/Library/LaunchAgents/local.encuesta.uvicorn.plist` (uvicorn en 0.0.0.0:8000 con PYTHONPATH del repo), LaunchDaemon `/Library/LaunchDaemons/local.captive.pf.plist` (pfctl -f/-e), y `brew services start dnsmasq`. Ver estado con `launchctl list | grep encuesta`, `sudo launchctl list | grep captive`, `brew services list | grep dnsmasq`.
