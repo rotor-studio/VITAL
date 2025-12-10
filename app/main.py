@@ -1,6 +1,7 @@
 from fastapi import Depends
 from app.deps import get_current_user
 from fastapi import FastAPI, Request
+from fastapi.responses import PlainTextResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from sqlmodel import SQLModel, create_engine
@@ -27,6 +28,24 @@ app.mount("/static", StaticFiles(directory="app/static"), name="static")
 app.mount("/images", StaticFiles(directory="app/images"), name="images")
 app.mount("/data", StaticFiles(directory="app/data"), name="data")
 templates = Jinja2Templates(directory="app/templates")
+
+
+@app.get("/hotspot-detect.html")
+def captive_apple():
+    return RedirectResponse("/", status_code=302)
+
+
+@app.get("/generate_204")
+@app.get("/gen_204")
+def captive_android():
+    return RedirectResponse("/", status_code=302)
+
+
+@app.get("/connecttest.txt")
+@app.get("/ncsi.txt")
+def captive_windows():
+    return RedirectResponse("/", status_code=302)
+
 
 @app.get("/")
 def survey_page(request: Request):
