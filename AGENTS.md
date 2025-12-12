@@ -47,3 +47,7 @@
 - Sesión (portal cautivo):
   * Estado actual: `/etc/pf.conf` revisado y `local.captive.pf.plist` cargado; PF activo. `defaults read /Library/Preferences/SystemConfiguration/com.apple.nat` muestra `Enabled = 1` con salida por `en0` y compartiendo `en1` (Internet Sharing/NAT activo).
   * Tareas para cerrar la salida: desactivar Internet Sharing (poner `Enabled = 0` en `com.apple.nat` y parar `com.apple.InternetSharing`), endurecer PF con `block ... quick` en `bridge100` y solo `pass quick` para DHCP/DNS/HTTP/ICMP hacia 192.168.2.1. Plantilla en `externo/pf_captive_strict.conf` para copiar a `/etc/pf.conf` y recargar (`sudo pfctl -f /etc/pf.conf && sudo pfctl -e`), luego validar con `sudo pfctl -sr` y `tcpdump` desde un cliente.
+- Sesión (VIPs y apertura manual):
+  * NAT/Internet Sharing desactivado (`com.apple.nat Enabled = 0`). `/etc/pf.conf` en modo estricto con `block drop log quick on bridge100` y pases solo hacia 192.168.2.1; `nat pass on en0` exclusivo para `vip_ips = {192.168.2.200, 192.168.2.201, 192.168.2.202}` para dar salida libre a esos IPs.
+  * Eliminadas las reservas DHCP por MAC en `/opt/homebrew/etc/dnsmasq.conf`; cualquier dispositivo que configure manualmente 192.168.2.200/.201/.202 (gw/DNS 192.168.2.1) queda libre, el resto sigue cautivo.
+  * Comandos útiles: ver clientes `arp -a -i bridge100`, leases `cat /opt/homebrew/var/run/dnsmasq.leases`, tráfico `sudo tcpdump -ni bridge100 arp or port 67 or port 68`.
