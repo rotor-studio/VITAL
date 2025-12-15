@@ -549,11 +549,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnBack = document.getElementById('btnBack');
     const btnNext = document.getElementById('btnNext');
 
-    btnBack.disabled = (prevSteps.length === 0);
+    const isFirstStep = (stepIndex === 0);
+    // Only allow "back" on the first question to return to the language selector.
+    btnBack.disabled = !isFirstStep;
     btnBack.addEventListener('click', () => {
-      if (prevSteps.length === 0) return;
-      stepIndex = prevSteps.pop();
-      renderStep(activeSteps[stepIndex]);
+      if (isFirstStep) {
+        renderLanguageSelector();
+        return;
+      }
+      // From any other step we do not permit navigating backwards.
     });
 
     if (type === 'chips' || type === 'rating') {
