@@ -6,6 +6,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const statusEl = document.getElementById('status');
   const doneView = document.getElementById('done');
   const doneTitle = document.querySelector('#done h2');
+  const doneNote = document.getElementById('doneNote');
   const doneSub = document.querySelector('#done p.sub');
   const again = document.getElementById('again');
   const miniStats = document.getElementById('miniStats');
@@ -22,6 +23,7 @@ document.addEventListener('DOMContentLoaded', () => {
       next: 'Siguiente',
       submit: 'Enviar',
       doneTitle: '¡Gracias!',
+      doneNote: 'Puedes comprobar los resultados globales de la encuesta en la visualización de la pantalla.',
       doneSub: 'Tu respuesta ha sido enviada.',
       again: 'Responder otra vez',
       statsMeta: 'Cargando datos…',
@@ -46,6 +48,7 @@ document.addEventListener('DOMContentLoaded', () => {
       next: 'Hurrengoa',
       submit: 'Bidali',
       doneTitle: 'Eskerrik asko!',
+      doneNote: 'Inkestaren emaitza globalak pantailako bistaratzean ikus ditzakezu.',
       doneSub: 'Zure erantzuna bidali da.',
       again: 'Erantzun berriro',
       statsMeta: 'Datuak kargatzen…',
@@ -70,6 +73,7 @@ document.addEventListener('DOMContentLoaded', () => {
       next: 'Next',
       submit: 'Submit',
       doneTitle: 'Thank you!',
+      doneNote: 'You can check the survey’s global results on the screen visualization.',
       doneSub: 'Your response has been sent.',
       again: 'Answer again',
       statsMeta: 'Loading data…',
@@ -303,6 +307,7 @@ document.addEventListener('DOMContentLoaded', () => {
       h1.textContent = localizedTitle;
     }
     if (doneTitle) doneTitle.textContent = locale.doneTitle;
+    if (doneNote) doneNote.textContent = locale.doneNote;
     if (doneSub) doneSub.textContent = locale.doneSub;
     again.textContent = locale.again;
     if (statsMeta) statsMeta.textContent = locale.statsMeta;

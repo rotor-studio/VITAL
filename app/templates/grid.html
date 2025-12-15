@@ -1087,7 +1087,7 @@
           if (zoomBubbleTimer) clearTimeout(zoomBubbleTimer);
           zoomBubbleTimer = setTimeout(() => {
             zoomBubbleEl.classList.remove("visible");
-          }, 2600);
+          }, 5200);
         }
         playZoomBlip();
         zoomedMarker = null;
@@ -1101,8 +1101,8 @@
               el.style.transform = "translate(0,0) scale(1)";
             });
             zoomedMarker = null;
-          }, 2000);
-        }, 300);
+          }, 5000);
+        }, 0);
       }
 
       function drawRays(lines) {
