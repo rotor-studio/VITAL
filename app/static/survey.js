@@ -901,11 +901,6 @@ document.addEventListener('DOMContentLoaded', () => {
       const metaAge = locale.statsCount ? locale.statsCount(ageTotal) : `${ageTotal}`;
       cards.push(renderDonutCard(locale.statsAge, metaAge, summary.ageSegments));
     }
-    const genderTotal = summary.genderSegments.reduce((acc, s) => acc + s.value, 0);
-    if (genderTotal) {
-      const metaGender = locale.statsCount ? locale.statsCount(genderTotal) : `${genderTotal}`;
-      cards.push(renderDonutCard(locale.statsGender, metaGender, summary.genderSegments));
-    }
     if (!cards.length) {
       miniStats.innerHTML = `<p class="hint">${locale.statsEmpty}</p>`;
       return;
