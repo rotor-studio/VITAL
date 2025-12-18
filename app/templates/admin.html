@@ -12,8 +12,10 @@
     ul { list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:12px; }
     .moderation-card { background:#111827; border:1px solid #1f2937; border-radius:12px; padding:14px; }
     .card-head { display:flex; flex-wrap:wrap; gap:8px; justify-content:space-between; align-items:center; margin-bottom:10px; font-size:.95rem; }
-    .card-body div { margin:4px 0; }
-    .card-body strong { display:inline-block; min-width:160px; font-weight:600; }
+    .card-body div { margin:10px 0; line-height:1.35; }
+    .card-body div + div { margin-top:16px; }
+    .card-body strong { display:inline-block; min-width:160px; font-weight:600; color:#93c5fd; }
+    .card-body .field-value { white-space: pre-wrap; overflow-wrap: anywhere; }
     .actions button { margin-left:6px; }
   </style>
 </head>
